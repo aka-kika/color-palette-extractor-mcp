@@ -219,9 +219,12 @@ function scss(swatches: any[], name: string): string {
 
 function htmlGuide(opts: any): string {
   const { title, src, window: win, appDark, appLight, wallpaper, a11y } = opts;
-  const renderCard = (s: any) => `
+  const renderCard = (s: any) => {
+    // Pick a readable text color for this swatch's chip — same heuristic the PNG previews use.
+    const fg = textOn(s.hex);
+    return `
     <div class="swatch">
-      <div class="chip" style="background:${s.hex}">
+      <div class="chip" style="background:${s.hex}; color:${fg}">
         <span class="role">${s.role}</span>
         <span class="hex">${s.hex.toUpperCase()}</span>
         <span class="pop">${s.population ? s.population.toLocaleString() + " px" : ""}</span>
@@ -230,7 +233,9 @@ function htmlGuide(opts: any): string {
         <div><span class="k">RGB</span> <span class="v">${Math.round(s.rgb.r)}, ${Math.round(s.rgb.g)}, ${Math.round(s.rgb.b)}</span></div>
         <div><span class="k">HSL</span> <span class="v">${Math.round(s.hsl.h)}°, ${Math.round(s.hsl.s)}%, ${Math.round(s.hsl.l)}%</span></div>
       </div>
-    </div>`;
+    </div>
+    `;
+  };
 
   const renderThemeBlock = (label: string, swatches: any[], bgHex: string) => {
     const rows = swatches.map((s) => {

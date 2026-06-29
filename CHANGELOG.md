@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- HTML design-system guide: text color on light-theme swatch cards was hardcoded to white, making hex labels invisible on near-white backgrounds. Now uses `textOn(hex)` per swatch (same heuristic as PNG previews) so each card picks a contrasting text color.
+
+## [0.2.0] - 2026-06-29
+
 ### Added
 - Deterministic k-means seeding (`mulberry32`) so re-extracting the same image always produces the same palette. Previously used `Math.random()` and could give slightly different small-cluster assignments between runs.
 - Wallpaper role names are now generic (`primary`, `secondary`, `tertiary`, `accent_warm`, `accent_cool`, `highlight`, `shadow`, `ambient`) — work for any wallpaper color family, not just blues.
