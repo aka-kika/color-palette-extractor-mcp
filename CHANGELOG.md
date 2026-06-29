@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tested against
 - `IMG_0602.JPG` — dark app on blue/purple gradient wallpaper
 - `55E4D056-7216-4340-AB40-E00046767E9B.JPG` — dark app on cream wallpaper
-- `IMG_0540.JPG` (KIKA design system, dark) — full-window screenshot, no wallpaper. Pipeline extracts the 6 brand swatches (`#0D0D0D`, `#D9D9D9`, `#EBEBEB`, `#7D8698`) accurately; window = full image (correct, no outside context).
+- `IMG_0540.JPG` (KIKA design system, **dark theme**) — full-window screenshot. Brand swatches extracted: `#0D0D0D`, `#D9D9D9`, `#EBEBEB`, `#7D8698`. ΔE 4.19, similarity 0.96.
+- `IMG_0539.JPG` (KIKA design system, **light theme**) — full-window screenshot. Brand swatches extracted: `#D9D9D9` bg, `#0E0E0E` fg, `#E3E4E5` off-white, `#7080A5` slate accent (matches KIKA's `--accent: #6D80A6` exactly). Light-theme a11y: text/bg = 13.58 AAA, accent/bg = 4.55 AA. ΔE 4.93, similarity 0.95.
 
 ### Known limitations
 - Full-bleed screenshots (no surrounding wallpaper) report `window: {x:0, y:0, width:full, height:full}` because the row/column scan can't distinguish "page" from "outside". The output is still correct — there just isn't a wallpaper to extract.
