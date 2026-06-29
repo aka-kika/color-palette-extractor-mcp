@@ -270,8 +270,36 @@ function scss(swatches: any[], name: string): string {
   return out;
 }
 
+/**
+ * Compute a UI chrome palette for the HTML guide that complements the brand.
+ * Two palettes: a "light page" feel (off-white panels, dark text) and a "dark
+ * page" feel (deep panels, light text). Both share the brand's accent color
+ * so the toggle UI matches the palette the user is inspecting.
+ */
+function chromePalettes(brandAccentHex: string) {
+  const accent = brandAccentHex || "#4f6bce";
+  return {
+    light: {
+      bg: "#f6f7fb", panel: "#ffffff", border: "#e3e6ee",
+      text: "#1a1d27", muted: "#6c7286", accent,
+      tagBg: "rgba(0,0,0,0.06)", tagFg: "#3d4b8a",
+      thBg: "rgba(0,0,0,0.03)", dot: "rgba(0,0,0,0.10)",
+      btnFg: "#ffffff",
+    },
+    dark: {
+      bg: "#0f1117", panel: "#1c2030", border: "#2a2f42",
+      text: "#e8e9ee", muted: "#8a92a8", accent,
+      tagBg: "rgba(79,107,206,0.15)", tagFg: "#9fb0e8",
+      thBg: "rgba(255,255,255,0.03)", dot: "rgba(255,255,255,0.10)",
+      btnFg: "#ffffff",
+    },
+  };
+}
+
 function htmlGuide(opts: any): string {
   const { title, src, window: win, primary, secondary, wallpaper, a11y, primaryLabel, secondaryLabel, sourceMode } = opts;
+  const brandAccent = (primary.find((s: any) => s.role === "accent") || {}).hex || "#4f6bce";
+  const chrome = chromePalettes(brandAccent);
   const renderCard = (s: any) => {
     // Pick a readable text color for this swatch's chip — same heuristic the PNG previews use.
     const fg = textOn(s.hex);
@@ -332,16 +360,26 @@ function htmlGuide(opts: any): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} — Design System</title>
 <style>
-  :root {
-    --bg: #0f1117;
-    --panel: #1c2030;
-    --border: #2a2f42;
-    --text: #e8e9ee;
-    --muted: #8a92a8;
-    --accent: #4f6bce;
+  /* Two chrome palettes — applied by JS depending on body.theme-show-* class.
+     This way the page chrome follows the toggle: light chrome when showing
+     the light theme, dark chrome when showing the dark theme. The accent
+     always comes from the brand palette. */
+  :root { --accent: ${chrome.dark.accent}; }
+  body.theme-show-primary {
+    --bg: ${chrome.light.bg}; --panel: ${chrome.light.panel}; --border: ${chrome.light.border};
+    --text: ${chrome.light.text}; --muted: ${chrome.light.muted};
+    --tagBg: ${chrome.light.tagBg}; --tagFg: ${chrome.light.tagFg};
+    --thBg: ${chrome.light.thBg}; --dot: ${chrome.light.dot}; --btnFg: ${chrome.light.btnFg};
+  }
+  body.theme-show-secondary {
+    --bg: ${chrome.dark.bg}; --panel: ${chrome.dark.panel}; --border: ${chrome.dark.border};
+    --text: ${chrome.dark.text}; --muted: ${chrome.dark.muted};
+    --tagBg: ${chrome.dark.tagBg}; --tagFg: ${chrome.dark.tagFg};
+    --thBg: ${chrome.dark.thBg}; --dot: ${chrome.dark.dot}; --btnFg: ${chrome.dark.btnFg};
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font: 14px/1.5 -apple-system, system-ui, "SF Pro Text", sans-serif; background: var(--bg); color: var(--text); }
+  body { margin: 0; font: 14px/1.5 -apple-system, system-ui, "SF Pro Text", sans-serif; background: var(--bg); color: var(--text); transition: background-color 0.25s ease, color 0.25s ease; }
+  header, main, .swatch, table, .src-info, .theme-toggle, footer { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
   header { padding: 32px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
   header h1 { margin: 0; font-size: 22px; }
   header .meta { color: var(--muted); font-size: 13px; }
@@ -361,9 +399,9 @@ function htmlGuide(opts: any): string {
   table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
   tr:last-child td { border-bottom: none; }
-  th { background: rgba(255,255,255,0.03); font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  th { background: var(--thBg); font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
   code { font-family: ui-monospace, "SF Mono", monospace; font-size: 13px; }
-  .dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; vertical-align: middle; border: 1px solid rgba(255,255,255,0.1); margin-right: 8px; }
+  .dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; vertical-align: middle; border: 1px solid var(--dot); margin-right: 8px; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
   .badge-aaa { background: #1e6b3a; color: #d4f5dd; }
   .badge-aa { background: #4f6bce; color: #e0e7ff; }
@@ -375,12 +413,12 @@ function htmlGuide(opts: any): string {
   .src-info div span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
   .src-info div strong { font-size: 16px; }
   footer { padding: 20px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center; }
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; background: rgba(79,107,206,0.15); color: #9fb0e8; margin-left: 8px; vertical-align: middle; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; background: var(--tagBg); color: var(--tagFg); margin-left: 8px; vertical-align: middle; }
 
   /* Theme toggle */
   .theme-toggle { display: inline-flex; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 3px; gap: 2px; }
   .theme-toggle button { background: transparent; border: none; padding: 6px 14px; font: 600 11px/1 ui-monospace, monospace; letter-spacing: 1px; color: var(--muted); cursor: pointer; border-radius: 4px; transition: background 0.15s ease, color 0.15s ease; }
-  .theme-toggle button.active { background: var(--accent); color: white; }
+  .theme-toggle button.active { background: var(--accent); color: var(--btnFg); }
   .theme-toggle button:hover:not(.active) { color: var(--text); }
 
   /* Theme visibility — both are rendered, hidden via display:none when not active */

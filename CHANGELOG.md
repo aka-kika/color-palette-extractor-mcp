@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-06-29
+
+### Added
+- **Themed page chrome** — the HTML design-system guide's surrounding UI (page background, panels, header, footer, table headers, tag pills, toggle) now uses two complementary chrome palettes and switches between them in lockstep with the LIGHT/DARK theme toggle. So flipping the toggle transitions the *whole page* between a light-mode feel (off-white panels, dark text) and a dark-mode feel (deep navy panels, light text) — not just swaps which swatch card is visible.
+- **Brand accent in chrome** — the toggle's active-button highlight, plus the `:root` `--accent` variable, are now seeded from the brand's extracted accent hex (not always `#4f6bce`). For the JEZ V image the active toggle button tints dusty pink (`#AF7A79`); for KIKA it tints slate (`#6D80A6`).
+- **Chrome palette helper** — `chromePalettes(brandAccentHex)` returns `{light, dark}` records with all UI variables (bg, panel, border, text, muted, tagBg, tagFg, thBg, dot, btnFg). Both records use the same accent so the toggle button highlight stays consistent.
+- **Smooth transitions** — body, header, main, swatches, tables, source-info panels, toggle and footer all transition background/border/color over 250ms when the toggle fires.
+
 ## [0.3.1] - 2026-06-29
 
 ### Fixed
