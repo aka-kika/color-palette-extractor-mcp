@@ -1,0 +1,24 @@
+{
+  "name": "color-palette-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for extracting, harmonizing, scoring, and exporting color palettes from images.",
+  "type": "module",
+  "bin": {
+    "color-palette-mcp": "./dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/server.ts",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "sharp": "^0.33.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}
