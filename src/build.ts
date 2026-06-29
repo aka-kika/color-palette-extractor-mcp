@@ -274,22 +274,31 @@ function scss(swatches: any[], name: string): string {
  * Compute a UI chrome palette for the HTML guide that complements the brand.
  * Two palettes: a "light page" feel (off-white panels, dark text) and a "dark
  * page" feel (deep panels, light text). Both share the brand's accent color
- * so the toggle UI matches the palette the user is inspecting.
+ * so the toggle UI matches the palette the user is inspecting. Tag pills,
+ * table dividers, and dot borders are derived from the accent at varying
+ * opacities so the chrome reads as "tinted by" the brand, not as a fixed
+ * blue/purple overlay.
  */
 function chromePalettes(brandAccentHex: string) {
   const accent = brandAccentHex || "#4f6bce";
+  const a = hexToRgb(accent);
+  // Tag pill: tint with the brand accent at ~12% opacity so the chrome reads
+  // as a continuation of the palette, not a different color.
+  const tagBg = a ? `rgba(${a.r},${a.g},${a.b},0.14)` : "rgba(79,107,206,0.15)";
+  const tagFg = a ? `rgb(${Math.min(255,Math.round(a.r*0.55 + 110))},${Math.min(255,Math.round(a.g*0.55 + 110))},${Math.min(255,Math.round(a.b*0.55 + 110))})` : "#9fb0e8";
   return {
     light: {
       bg: "#f6f7fb", panel: "#ffffff", border: "#e3e6ee",
       text: "#1a1d27", muted: "#6c7286", accent,
-      tagBg: "rgba(0,0,0,0.06)", tagFg: "#3d4b8a",
+      tagBg: a ? `rgba(${a.r},${a.g},${a.b},0.10)` : "rgba(0,0,0,0.06)",
+      tagFg: a ? `rgb(${Math.max(0,Math.round(a.r*0.45 + 50))},${Math.max(0,Math.round(a.g*0.45 + 50))},${Math.max(0,Math.round(a.b*0.45 + 50))})` : "#3d4b8a",
       thBg: "rgba(0,0,0,0.03)", dot: "rgba(0,0,0,0.10)",
       btnFg: "#ffffff",
     },
     dark: {
       bg: "#0f1117", panel: "#1c2030", border: "#2a2f42",
       text: "#e8e9ee", muted: "#8a92a8", accent,
-      tagBg: "rgba(79,107,206,0.15)", tagFg: "#9fb0e8",
+      tagBg, tagFg,
       thBg: "rgba(255,255,255,0.03)", dot: "rgba(255,255,255,0.10)",
       btnFg: "#ffffff",
     },
@@ -424,6 +433,16 @@ function htmlGuide(opts: any): string {
   /* Theme visibility — both are rendered, hidden via display:none when not active */
   body.theme-show-primary .theme-secondary { display: none; }
   body.theme-show-secondary .theme-primary { display: none; }
+
+  /* Theme-aware pair preview — show the light/dark variant matching the page chrome. */
+  .pair-preview { position: relative; }
+  .pair-preview img { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; }
+  body.theme-show-primary .pair-preview .pair-dark  { display: none; }
+  body.theme-show-secondary .pair-preview .pair-light { display: none; }
+
+  /* Hide the wallpaper section entirely when there are no wallpaper colors
+     (empty palette, broken image). Skips the section header + empty div. */
+  section.wallpaper-section { display: none; }
 </style>
 </head>
 <body class="theme-show-primary">
@@ -448,7 +467,10 @@ function htmlGuide(opts: any): string {
     </div>
     <div class="preview-row" style="margin-top:16px">
       <img src="app-window-cropped.png" alt="Detected app window">
-      <img src="preview-app-pair.png" alt="Theme comparison">
+      <div class="pair-preview">
+        <img class="pair-light" src="preview-app-pair-light.png" alt="Theme comparison (light)">
+        <img class="pair-dark"  src="preview-app-pair-dark.png"  alt="Theme comparison (dark)">
+      </div>
     </div>
   </section>
   <section>
@@ -463,11 +485,11 @@ function htmlGuide(opts: any): string {
       <tbody>${a11yRows}</tbody>
     </table>
   </section>
-  <section>
+  ${wallpaper.length > 0 ? `<section class="wallpaper-section">
     <h2>Wallpaper (excluded from app)</h2>
     <div class="palette">${wallpaper.map(renderCard).join("")}</div>
     <img src="preview-wallpaper.png" alt="Wallpaper palette" style="width:100%;border-radius:10px;border:1px solid var(--border)">
-  </section>
+  </section>` : ""}
 </main>
 <footer>Color Palette MCP · ${new Date().toISOString().split("T")[0]}</footer>
 <script>
@@ -583,10 +605,24 @@ export async function buildDeliverableFolder(
   await fs.writeFile(`${OUT}/preview-${secondarySlug}.png`,
     await renderStrip(secondary, { title: `APP ${secondaryLabel}`, tileSize: 200, cols: 4 }));
   await fs.writeFile(`${OUT}/preview-wallpaper.png`, await renderStrip(wallpaper, { title: "WALLPAPER", tileSize: 200, cols: 4 }));
+  // Two pair previews so the HTML toggle can swap them. Each preview has a
+  // matching background tint (light or dark) so the swatch row above each
+  // pair reads correctly against the page chrome in either mode.
+  await fs.writeFile(`${OUT}/preview-app-pair-light.png`,
+    await renderThemePair(primary, secondary, {
+      title: `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`,
+      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200, bg: "#f6f7fb",
+    }));
+  await fs.writeFile(`${OUT}/preview-app-pair-dark.png`,
+    await renderThemePair(primary, secondary, {
+      title: `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`,
+      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200, bg: "#0f1117",
+    }));
+  // Static fallback (default to the light variant).
   await fs.writeFile(`${OUT}/preview-app-pair.png`,
     await renderThemePair(primary, secondary, {
       title: `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`,
-      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200,
+      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200, bg: "#f6f7fb",
     }));
   await fs.writeFile(`${OUT}/preview-all.png`,
     await renderStrip([...primary, ...wallpaper], { title: "FULL — app + wallpaper", tileSize: 160, cols: 6 }));

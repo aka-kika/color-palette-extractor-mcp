@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-06-29
+
+### Fixed
+- **Chrome tints derived from brand accent** — `chromePalettes()` previously hardcoded the dark-mode tag pill to `rgba(79,107,206,0.15)` (the original blue accent). The dark page always read as purple/blue even when the brand had no blue at all. Tag pill background and foreground now compute from the brand's extracted accent RGB: `rgba(r,g,b,0.14)` for the bg and a darkened RGB for the fg. For IMG_0396 (brand accent `#857C78` warm grey) the dark tag is now warm-grey instead of blue.
+- **Empty Wallpaper section hidden** — when the source image has no separate wallpaper region (e.g. mockup on neutral, full-window brand sheet, photo with no UI), the `wallpaper` array is empty and the "Wallpaper (excluded from app)" section used to render an empty `<div class="palette">` and a broken `<img src="preview-wallpaper.png">`. Now the entire section is omitted from the HTML when `wallpaper.length === 0`.
+- **App pair preview swaps with toggle** — `preview-app-pair.png` was a single static PNG, so flipping the LIGHT/DARK toggle didn't change its background tint. Now two variants are generated: `preview-app-pair-light.png` (rendered on a `#f6f7fb` light bg) and `preview-app-pair-dark.png` (rendered on a `#0f1117` dark bg). HTML uses CSS `display: none` keyed to `body.theme-show-*` to swap them. The original `preview-app-pair.png` is kept as a static fallback (light variant) for README/preview contexts that don't render HTML.
+
 ## [0.3.2] - 2026-06-29
 
 ### Added
