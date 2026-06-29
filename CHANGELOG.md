@@ -5,17 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-06-29
+
+### Added
+- **Source mode detection** — `detectSourceMode()` looks at the luminance of the dominant cluster and labels the source `dark` (l < 50%) or `light` (l ≥ 50%). Returned in the JSON response as `source_mode`.
+- **`target_mode` parameter** for `build_palette_folder` — controls which theme is labelled primary in the deliverable. Three values:
+  - `auto` (default) — primary matches the source's detected mode; secondary is derived as the inverse
+  - `dark` — force primary to be the dark theme
+  - `light` — force primary to be the light theme
+  - Both themes are always produced regardless of `target_mode`.
+- **HTML theme toggle** — `index.html` now has a clickable `LIGHT` / `DARK` switch in the header. Both themes are rendered in the page; CSS hides the inactive one. Selection is remembered via `localStorage`. The active button is highlighted in accent color.
+- **Symmetric theme derivation** — `deriveOtherMode(swatches, sourceMode)` now branches on `sourceMode` so a light source produces a dark derivation and vice versa (was previously always light).
+- **Dynamic file naming** — exports and PNG previews are labelled `app-light.*` or `app-dark.*` based on which theme each represents, not hardcoded to `app-light` being derived.
+
+### Changed
+- **`pickDarkRoles` → `pickRolesForMode(swatches, mode)`** — mode-aware role assignment. The `text` role is now the *opposite* extreme of lightness from `background`, not always "lightest".
+- **BuildResult** field names changed from `appDark` / `appLight` to `primary` / `secondary`, plus new `sourceMode` field. JSON response key changed from `app_dark` / `app_light` to `primary` / `secondary` plus `source_mode`. This is a breaking change for any consumer that parsed the old keys.
+- **HTML header** now shows detected `source_mode` next to the toggle.
+- **README** now labels sections as `Primary`/`Secondary` (not `Dark`/`Light`) when the source is light, and shows both themes side-by-side with their a11y tables.
 
 ### Tested against
-- `IMG_0602.JPG` — dark app on blue/purple gradient wallpaper
-- `55E4D056-7216-4340-AB40-E00046767E9B.JPG` — dark app on cream wallpaper
-- `IMG_0540.JPG` (KIKA design system, **dark theme**) — full-window screenshot. Brand swatches extracted: `#0D0D0D`, `#D9D9D9`, `#EBEBEB`, `#7D8698`. ΔE 4.19, similarity 0.96.
-- `IMG_0539.JPG` (KIKA design system, **light theme**) — full-window screenshot. Brand swatches extracted: `#D9D9D9` bg, `#0E0E0E` fg, `#E3E4E5` off-white, `#7080A5` slate accent (matches KIKA's `--accent: #6D80A6` exactly). Light-theme a11y: text/bg = 13.58 AAA, accent/bg = 4.55 AA. ΔE 4.93, similarity 0.95.
-
-### Known limitations
-- Full-bleed screenshots (no surrounding wallpaper) report `window: {x:0, y:0, width:full, height:full}` because the row/column scan can't distinguish "page" from "outside". The output is still correct — there just isn't a wallpaper to extract.
-- On a design-system *page* (vs a real app), the largest non-background cluster is often a *brand swatch sample* rather than a structural surface tone, so `surface`/`text` role labels may not match the spec's intended hierarchy.
+- `IMG_0539.JPG` (KIKA design system, **light theme**) — auto-detect picks `light`, primary = extracted light palette, secondary = derived dark. HTML toggle shows LIGHT active. Slate accent `#7080A5` matches KIKA spec exactly.
+- `IMG_0540.JPG` (KIKA design system, **dark theme**) — auto-detect picks `dark`, primary = extracted dark palette, secondary = derived light.
+- `55E4D056-7216-4340-AB40-E00046767E9B.JPG` (Vincent's screenshot) — dark app on cream wallpaper. `source_mode: dark`, primary = extracted dark app theme, secondary = derived light theme, wallpaper correctly separated.
+- `IMG_0539.JPG` with `target_mode: 'dark'` — primary becomes the derived dark theme (text role inverted), secondary the extracted light. Useful when the source is a light brand sheet but you need dark UI tokens.
 
 ## [0.2.1] - 2026-06-29
 

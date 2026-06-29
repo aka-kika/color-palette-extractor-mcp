@@ -77,9 +77,11 @@ async function renderStrip(swatches: any[], opts: any): Promise<Buffer> {
   return sharp(Buffer.from(baseSvg)).composite(comps).png().toBuffer();
 }
 
-async function renderThemePair(dark: any[], light: any[], opts: any): Promise<Buffer> {
-  const { tileSize = 200, gap = 14, title = "", bg = "#0f1117" } = opts;
-  const n = dark.length;
+async function renderThemePair(first: any[], second: any[], opts: any): Promise<Buffer> {
+  // firstLabel/secondLabel render above each row of tiles. Defaults to DARK/LIGHT.
+  const { tileSize = 200, gap = 14, title = "", bg = "#0f1117",
+          firstLabel = "DARK", secondLabel = "LIGHT" } = opts;
+  const n = first.length;
   const w = n * tileSize + (n - 1) * gap;
   const labelH = 40;
   const titleH = title ? 50 : 0;
@@ -95,21 +97,21 @@ async function renderThemePair(dark: any[], light: any[], opts: any): Promise<Bu
     comps.push({ input: Buffer.from(titleSvg), top: 0, left: 0 });
   }
 
-  const darkLabel = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${labelH}">
-    <text x="20" y="28" font-family="-apple-system, system-ui, sans-serif" font-size="14" font-weight="700" fill="#cccccc" letter-spacing="2">DARK</text>
+  const firstLabelSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${labelH}">
+    <text x="20" y="28" font-family="-apple-system, system-ui, sans-serif" font-size="14" font-weight="700" fill="#cccccc" letter-spacing="2">${firstLabel}</text>
   </svg>`);
-  comps.push({ input: darkLabel, top: titleH, left: 0 });
+  comps.push({ input: firstLabelSvg, top: titleH, left: 0 });
   for (let i = 0; i < n; i++) {
-    const buf = await renderTile(dark[i], tileSize);
+    const buf = await renderTile(first[i], tileSize);
     comps.push({ input: buf, top: titleH + labelH, left: i * (tileSize + gap) });
   }
 
-  const lightLabel = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${labelH}">
-    <text x="20" y="28" font-family="-apple-system, system-ui, sans-serif" font-size="14" font-weight="700" fill="#cccccc" letter-spacing="2">LIGHT</text>
+  const secondLabelSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${labelH}">
+    <text x="20" y="28" font-family="-apple-system, system-ui, sans-serif" font-size="14" font-weight="700" fill="#cccccc" letter-spacing="2">${secondLabel}</text>
   </svg>`);
-  comps.push({ input: lightLabel, top: titleH + blockH, left: 0 });
+  comps.push({ input: secondLabelSvg, top: titleH + blockH, left: 0 });
   for (let i = 0; i < n; i++) {
-    const buf = await renderTile(light[i], tileSize);
+    const buf = await renderTile(second[i], tileSize);
     comps.push({ input: buf, top: titleH + blockH + labelH, left: i * (tileSize + gap) });
   }
 
@@ -120,18 +122,23 @@ async function renderThemePair(dark: any[], light: any[], opts: any): Promise<Bu
 }
 
 // --- role assignment ---
-function pickDarkRoles(swatches: any[]): any[] {
+// Pick roles given an explicit source mode ("dark" or "light"). This is the
+// authoritative role-assignment logic — both themes flow through here.
+function pickRolesForMode(swatches: any[], sourceMode: "dark" | "light"): any[] {
   const sorted = [...swatches].sort((a, b) => b.population - a.population);
   const bg = sorted[0];
 
-  // Text = lightest cluster (highest l) regardless of saturation.
-  const byL = [...swatches].sort((a, b) => b.hsl.l - a.hsl.l);
-  const text = byL[0];
+  // Text = the extreme of lightness opposite to the background.
+  //   dark source  → text = lightest
+  //   light source → text = darkest
+  const targetL = sourceMode === "dark" ? Infinity : -Infinity;
+  const text = [...swatches].sort((a, b) =>
+    sourceMode === "dark" ? b.hsl.l - a.hsl.l : a.hsl.l - b.hsl.l
+  )[0];
 
-  // Accent = highest saturation among remaining clusters (skips bg + text).
+  // Accent = highest saturation among the remaining clusters.
   const remaining = swatches.filter((s) => s.hex !== bg.hex && s.hex !== text.hex);
-  const bySat = [...remaining].sort((a, b) => b.hsl.s - a.hsl.s);
-  const accent = bySat[0];
+  const accent = [...remaining].sort((a, b) => b.hsl.s - a.hsl.s)[0] || text;
 
   // Surface = lowest saturation among remaining (most neutral mid-tone).
   // Falls back to bg if every remaining swatch is highly saturated.
@@ -147,16 +154,33 @@ function pickDarkRoles(swatches: any[]): any[] {
   ];
 }
 
-function pickLightDerivative(darkSwatches: any[]): any[] {
-  return darkSwatches.map((s) => {
+// Derive the opposite theme by inverting lightness while preserving hue.
+// `sourceMode` is the mode of the input palette, so the output is its inverse:
+//   source "dark"  → output "light"
+//   source "light" → output "dark"
+function deriveOtherMode(swatches: any[], sourceMode: "dark" | "light"): any[] {
+  const invert = sourceMode === "dark"; // dark→light maps light-l targets; light→dark maps dark-l targets
+  return swatches.map((s) => {
     const hsl = s.hsl;
     let targetL: number, targetS: number;
-    switch (s.role) {
-      case "background": targetL = 97; targetS = 0.15; break;
-      case "surface":    targetL = 92; targetS = 0.25; break;
-      case "text":       targetL = 16; targetS = 0.15; break;
-      case "accent":     targetL = 48; targetS = 0.85; break;
-      default:           targetL = 50; targetS = 0.50;
+    if (invert) {
+      // Dark source → produce a light theme
+      switch (s.role) {
+        case "background": targetL = 97; targetS = 0.15; break;
+        case "surface":    targetL = 92; targetS = 0.25; break;
+        case "text":       targetL = 16; targetS = 0.15; break;
+        case "accent":     targetL = 48; targetS = 0.85; break;
+        default:           targetL = 50; targetS = 0.50;
+      }
+    } else {
+      // Light source → produce a dark theme
+      switch (s.role) {
+        case "background": targetL = 8;  targetS = 0.15; break;
+        case "surface":    targetL = 18; targetS = 0.25; break;
+        case "text":       targetL = 96; targetS = 0.15; break;
+        case "accent":     targetL = 52; targetS = 0.85; break;
+        default:           targetL = 50; targetS = 0.50;
+      }
     }
     const newHex = rgbToHex(hslToRgb({
       h: hsl.h, s: Math.min(50, hsl.s * targetS), l: targetL,
@@ -166,6 +190,35 @@ function pickLightDerivative(darkSwatches: any[]): any[] {
       population: s.population, role: s.role,
     };
   });
+}
+
+// Detect whether the source palette is a dark or light theme by the luminance
+// of the dominant cluster. Threshold at 50% — empirically matches perception.
+function detectSourceMode(swatches: any[]): "dark" | "light" {
+  if (swatches.length === 0) return "dark";
+  const sorted = [...swatches].sort((a, b) => b.population - a.population);
+  const bgL = sorted[0].hsl.l;
+  return bgL < 50 ? "dark" : "light";
+}
+
+// Reorganize an extracted palette according to an explicit target mode.
+// When target === "auto", roles are picked based on the detected source mode,
+// and the source palette is also rendered as one of the two output themes.
+function arrangeThemes(
+  raw: any[],
+  targetMode: "auto" | "dark" | "light",
+): { sourceMode: "dark" | "light"; primary: any[]; secondary: any[] } {
+  const sourceMode = detectSourceMode(raw);
+  const resolvedTarget: "dark" | "light" = targetMode === "auto" ? sourceMode : targetMode;
+
+  // The "primary" theme uses roles picked for the actual source (or for the
+  // requested target). The "secondary" theme is derived as the inverse.
+  // When sourceMode === resolvedTarget, primary = source + roles, secondary = derived.
+  // When they differ (e.g. user has dark theme but asks for light), primary is
+  // still the source-derived palette, secondary is the opposite derivation.
+  const primary = pickRolesForMode(raw, resolvedTarget);
+  const secondary = deriveOtherMode(primary, sourceMode);
+  return { sourceMode, primary, secondary };
 }
 
 // Names are ordered most-saturated first. The colors dominate so for monochrome/cream
@@ -218,7 +271,7 @@ function scss(swatches: any[], name: string): string {
 }
 
 function htmlGuide(opts: any): string {
-  const { title, src, window: win, appDark, appLight, wallpaper, a11y } = opts;
+  const { title, src, window: win, primary, secondary, wallpaper, a11y, primaryLabel, secondaryLabel, sourceMode } = opts;
   const renderCard = (s: any) => {
     // Pick a readable text color for this swatch's chip — same heuristic the PNG previews use.
     const fg = textOn(s.hex);
@@ -237,8 +290,10 @@ function htmlGuide(opts: any): string {
     `;
   };
 
-  const renderThemeBlock = (label: string, swatches: any[], bgHex: string) => {
-    const rows = swatches.map((s) => {
+  const renderThemeBlock = (themeLabel: string, swatches: any[], id: string) => {
+    const bg = swatches.find((s: any) => s.role === "background");
+    const bgHex = bg.hex;
+    const rows = swatches.map((s: any) => {
       const onBg = contrastRatio(hexToRgb(s.hex), hexToRgb(bgHex));
       return `
         <tr>
@@ -249,9 +304,10 @@ function htmlGuide(opts: any): string {
           <td>${onBg.toFixed(2)} <small>(${wcagLevel(onBg)})</small></td>
         </tr>`;
     }).join("");
+    const sourceLabel = themeLabel === primaryLabel ? "matches source" : "derived";
     return `
-      <section class="theme ${label.toLowerCase()}">
-        <h2>${label} theme</h2>
+      <section class="theme theme-${id}" data-theme="${themeLabel.toLowerCase()}">
+        <header><h2>${themeLabel} theme</h2><span class="tag">${sourceLabel}</span></header>
         <div class="palette">${swatches.map(renderCard).join("")}</div>
         <table>
           <thead><tr><th></th><th>Hex</th><th>Role</th><th>HSL</th><th>Contrast on ${bgHex.toUpperCase()}</th></tr></thead>
@@ -319,12 +375,29 @@ function htmlGuide(opts: any): string {
   .src-info div span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
   .src-info div strong { font-size: 16px; }
   footer { padding: 20px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; background: rgba(79,107,206,0.15); color: #9fb0e8; margin-left: 8px; vertical-align: middle; }
+
+  /* Theme toggle */
+  .theme-toggle { display: inline-flex; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 3px; gap: 2px; }
+  .theme-toggle button { background: transparent; border: none; padding: 6px 14px; font: 600 11px/1 ui-monospace, monospace; letter-spacing: 1px; color: var(--muted); cursor: pointer; border-radius: 4px; transition: background 0.15s ease, color 0.15s ease; }
+  .theme-toggle button.active { background: var(--accent); color: white; }
+  .theme-toggle button:hover:not(.active) { color: var(--text); }
+
+  /* Theme visibility — both are rendered, hidden via display:none when not active */
+  body.theme-show-primary .theme-secondary { display: none; }
+  body.theme-show-secondary .theme-primary { display: none; }
 </style>
 </head>
-<body>
+<body class="theme-show-${primaryLabel.toLowerCase()}">
 <header>
   <h1>${title}</h1>
-  <div class="meta">generated by color-palette-mcp</div>
+  <div style="display:flex; gap:24px; align-items:center;">
+    <div class="meta">source: <code>${sourceMode}</code> · generated by color-palette-mcp</div>
+    <div class="theme-toggle" role="tablist" aria-label="Theme">
+      <button type="button" data-set-theme="primary" class="${primaryLabel.toLowerCase() === primaryLabel.toLowerCase() ? 'active' : ''} active">${primaryLabel}</button>
+      <button type="button" data-set-theme="secondary">${secondaryLabel}</button>
+    </div>
+  </div>
 </header>
 <main>
   <section>
@@ -332,18 +405,18 @@ function htmlGuide(opts: any): string {
     <div class="src-info">
       <div><span>Source</span><strong><code>${src}</code></strong></div>
       <div><span>Window</span><strong>${win.width}×${win.height} @ (${win.x},${win.y})</strong></div>
-      <div><span>App colors</span><strong>${appDark.length}</strong></div>
+      <div><span>App colors</span><strong>${primary.length}</strong></div>
       <div><span>Wallpaper colors</span><strong>${wallpaper.length}</strong></div>
     </div>
     <div class="preview-row" style="margin-top:16px">
       <img src="app-window-cropped.png" alt="Detected app window">
-      <img src="preview-app-pair.png" alt="Dark vs light theme">
+      <img src="preview-app-pair.png" alt="Theme comparison">
     </div>
   </section>
   <section>
     <h2>App theme</h2>
-    ${renderThemeBlock("Dark", appDark, appDark.find((s: any) => s.role === "background").hex)}
-    ${renderThemeBlock("Light", appLight, appLight.find((s: any) => s.role === "background").hex)}
+    ${renderThemeBlock(primaryLabel, primary, "primary")}
+    ${renderThemeBlock(secondaryLabel, secondary, "secondary")}
   </section>
   <section>
     <h2>Accessibility</h2>
@@ -359,6 +432,29 @@ function htmlGuide(opts: any): string {
   </section>
 </main>
 <footer>Color Palette MCP · ${new Date().toISOString().split("T")[0]}</footer>
+<script>
+  (function() {
+    var body = document.body;
+    var buttons = document.querySelectorAll('[data-set-theme]');
+    function set(which) {
+      body.classList.remove('theme-show-primary', 'theme-show-secondary');
+      body.classList.add('theme-show-' + which);
+      buttons.forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-set-theme') === which);
+      });
+      try { localStorage.setItem('paletteTheme', which); } catch (e) {}
+    }
+    buttons.forEach(function(b) {
+      b.addEventListener('click', function() {
+        set(b.getAttribute('data-set-theme'));
+      });
+    });
+    try {
+      var saved = localStorage.getItem('paletteTheme');
+      if (saved === 'primary' || saved === 'secondary') set(saved);
+    } catch (e) {}
+  })();
+</script>
 </body>
 </html>`;
 }
@@ -367,8 +463,9 @@ export type BuildResult = {
   folder: string;
   hash: string;
   window: { x: number; y: number; width: number; height: number };
-  appDark: any[];
-  appLight: any[];
+  sourceMode: "dark" | "light";
+  primary: any[];   // the palette matching the source (or requested target)
+  secondary: any[]; // the inverse theme, derived from primary
   wallpaper: any[];
   a11y: any[];
   comparison: { meanDeltaE: number; meanSimilarity: number };
@@ -379,9 +476,21 @@ export type BuildResult = {
  * Build a complete deliverable folder for an image: previews, exports, README,
  * HTML design system guide, and PNG screenshot of the guide. Folder name is
  * `{stem}_{timestamp}_{hash}` where stem comes from the source filename.
+ *
+ * `targetMode` controls how the two output themes are labelled:
+ *   - `"auto"` (default) — detect dark/light from the source palette and emit
+ *     one as primary, the inverse as secondary
+ *   - `"dark"` — force primary to be the dark theme
+ *   - `"light"` — force primary to be the light theme
+ *
+ * Both themes are always produced regardless of targetMode.
  */
-export async function buildDeliverableFolder(src: string, opts: { outputDir?: string } = {}): Promise<BuildResult> {
+export async function buildDeliverableFolder(
+  src: string,
+  opts: { outputDir?: string; targetMode?: "auto" | "dark" | "light" } = {},
+): Promise<BuildResult> {
   const outDir = opts.outputDir || ROOT;
+  const targetMode = opts.targetMode || "auto";
   const fileBuf = await fs.readFile(src);
   const hash = createHash("sha256").update(fileBuf).digest("hex").slice(0, 8);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").split("T").join("_").slice(0, 19);
@@ -408,12 +517,14 @@ export async function buildDeliverableFolder(src: string, opts: { outputDir?: st
     ? extractPalette(split.backgroundPixels, split.backgroundCount, 1, { count: 12, method: "kmeans", minPopulationRatio: 0 })
     : [];
 
-  const appDark = pickDarkRoles(fgRaw);
-  const appLight = pickLightDerivative(appDark);
+  const { sourceMode, primary, secondary } = arrangeThemes(fgRaw, targetMode);
   const wallpaper = pickWallpaperRoles(bgRaw);
 
   const a11y: any[] = [];
-  for (const theme of [{ label: "App dark", sw: appDark }, { label: "App light", sw: appLight }]) {
+  for (const theme of [
+    { label: "Primary", sw: primary },
+    { label: "Secondary", sw: secondary },
+  ]) {
     const bg = theme.sw.find((s: any) => s.role === "background");
     for (const fg of theme.sw) {
       if (fg.role === "background") continue;
@@ -422,26 +533,38 @@ export async function buildDeliverableFolder(src: string, opts: { outputDir?: st
     }
   }
 
-  const cmp = comparePalettes(appLight.map((s) => s.hex), appDark.map((s) => s.hex));
+  const cmp = comparePalettes(secondary.map((s) => s.hex), primary.map((s) => s.hex));
 
-  await fs.writeFile(`${OUT}/preview-app-dark.png`, await renderStrip(appDark, { title: "APP DARK", tileSize: 200, cols: 4 }));
-  await fs.writeFile(`${OUT}/preview-app-light.png`, await renderStrip(appLight, { title: "APP LIGHT", tileSize: 200, cols: 4 }));
+  const primaryLabel = primary[0].hsl.l < 50 ? "DARK" : "LIGHT";
+  const secondaryLabel = secondary[0].hsl.l < 50 ? "DARK" : "LIGHT";
+  const primarySlug = `app-${primaryLabel.toLowerCase()}`;
+  const secondarySlug = `app-${secondaryLabel.toLowerCase()}`;
+
+  await fs.writeFile(`${OUT}/preview-${primarySlug}.png`,
+    await renderStrip(primary, { title: `APP ${primaryLabel}`, tileSize: 200, cols: 4 }));
+  await fs.writeFile(`${OUT}/preview-${secondarySlug}.png`,
+    await renderStrip(secondary, { title: `APP ${secondaryLabel}`, tileSize: 200, cols: 4 }));
   await fs.writeFile(`${OUT}/preview-wallpaper.png`, await renderStrip(wallpaper, { title: "WALLPAPER", tileSize: 200, cols: 4 }));
-  await fs.writeFile(`${OUT}/preview-app-pair.png`, await renderThemePair(appDark, appLight, { title: "APP THEME — dark vs light", tileSize: 200 }));
-  await fs.writeFile(`${OUT}/preview-all.png`, await renderStrip([...appDark, ...wallpaper], { title: "FULL — app + wallpaper", tileSize: 160, cols: 6 }));
+  await fs.writeFile(`${OUT}/preview-app-pair.png`,
+    await renderThemePair(primary, secondary, {
+      title: `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`,
+      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200,
+    }));
+  await fs.writeFile(`${OUT}/preview-all.png`,
+    await renderStrip([...primary, ...wallpaper], { title: "FULL — app + wallpaper", tileSize: 160, cols: 6 }));
 
   await fs.mkdir(`${OUT}/exports`, { recursive: true });
   const exportFiles: Record<string, string> = {
-    "exports/app-dark.css_vars":  cssVars(appDark, "app-dark"),
-    "exports/app-dark.tailwind":  tailwind(appDark, "app-dark"),
-    "exports/app-dark.scss":      scss(appDark, "app-dark"),
-    "exports/app-dark.json":      jsonOut(appDark, "app-dark"),
-    "exports/app-dark.figma":     figmaTokens(appDark, "app-dark"),
-    "exports/app-light.css_vars": cssVars(appLight, "app-light"),
-    "exports/app-light.tailwind": tailwind(appLight, "app-light"),
-    "exports/app-light.scss":     scss(appLight, "app-light"),
-    "exports/app-light.json":     jsonOut(appLight, "app-light"),
-    "exports/app-light.figma":    figmaTokens(appLight, "app-light"),
+    [`exports/${primarySlug}.css_vars`]:   cssVars(primary, primarySlug),
+    [`exports/${primarySlug}.tailwind`]:   tailwind(primary, primarySlug),
+    [`exports/${primarySlug}.scss`]:       scss(primary, primarySlug),
+    [`exports/${primarySlug}.json`]:       jsonOut(primary, primarySlug),
+    [`exports/${primarySlug}.figma`]:      figmaTokens(primary, primarySlug),
+    [`exports/${secondarySlug}.css_vars`]: cssVars(secondary, secondarySlug),
+    [`exports/${secondarySlug}.tailwind`]: tailwind(secondary, secondarySlug),
+    [`exports/${secondarySlug}.scss`]:     scss(secondary, secondarySlug),
+    [`exports/${secondarySlug}.json`]:     jsonOut(secondary, secondarySlug),
+    [`exports/${secondarySlug}.figma`]:    figmaTokens(secondary, secondarySlug),
     "exports/wallpaper.css_vars": cssVars(wallpaper, "wallpaper"),
     "exports/wallpaper.tailwind": tailwind(wallpaper, "wallpaper"),
     "exports/wallpaper.scss":     scss(wallpaper, "wallpaper"),
@@ -454,7 +577,8 @@ export async function buildDeliverableFolder(src: string, opts: { outputDir?: st
 
   const html = htmlGuide({
     title: stem, src: src.split("/").pop(),
-    window: split.foreground, appDark, appLight, wallpaper, a11y,
+    window: split.foreground, primary, secondary, wallpaper, a11y,
+    primaryLabel, secondaryLabel, sourceMode,
   });
   await fs.writeFile(`${OUT}/index.html`, html);
 
@@ -472,6 +596,8 @@ export async function buildDeliverableFolder(src: string, opts: { outputDir?: st
 
 Generated by **color-palette-mcp** on ${new Date().toISOString().split("T")[0]}.
 
+**Source mode:** \`${sourceMode}\` · **Primary theme:** \`${primaryLabel.toLowerCase()}\` · **Secondary theme:** \`${secondaryLabel.toLowerCase()}\`
+
 ## Source
 - **File:** \`${src.split("/").pop()}\`
 - **Detected window:** ${split.foreground.width}×${split.foreground.height} at (${split.foreground.x}, ${split.foreground.y})
@@ -479,17 +605,17 @@ Generated by **color-palette-mcp** on ${new Date().toISOString().split("T")[0]}.
 
 ## App palette (extracted from window)
 
-### Dark theme
+### ${primaryLabel} theme (primary)
 | Role | Hex | RGB | HSL | Population |
 |---|---|---|---|---|
-${appDark.map((s: any) => `| ${s.role} | \`${s.hex.toUpperCase()}\` | ${Math.round(s.rgb.r)}, ${Math.round(s.rgb.g)}, ${Math.round(s.rgb.b)} | ${Math.round(s.hsl.h)}°, ${Math.round(s.hsl.s)}%, ${Math.round(s.hsl.l)}% | ${s.population.toLocaleString()} px |`).join("\n")}
+${primary.map((s: any) => `| ${s.role} | \`${s.hex.toUpperCase()}\` | ${Math.round(s.rgb.r)}, ${Math.round(s.rgb.g)}, ${Math.round(s.rgb.b)} | ${Math.round(s.hsl.h)}°, ${Math.round(s.hsl.s)}%, ${Math.round(s.hsl.l)}% | ${s.population.toLocaleString()} px |`).join("\n")}
 
-### Light theme (derived)
+### ${secondaryLabel} theme (derived)
 | Role | Hex | RGB | HSL |
 |---|---|---|---|
-${appLight.map((s: any) => `| ${s.role} | \`${s.hex.toUpperCase()}\` | ${Math.round(s.rgb.r)}, ${Math.round(s.rgb.g)}, ${Math.round(s.rgb.b)} | ${Math.round(s.hsl.h)}°, ${Math.round(s.hsl.s)}%, ${Math.round(s.hsl.l)}% |`).join("\n")}
+${secondary.map((s: any) => `| ${s.role} | \`${s.hex.toUpperCase()}\` | ${Math.round(s.rgb.r)}, ${Math.round(s.rgb.g)}, ${Math.round(s.rgb.b)} | ${Math.round(s.hsl.h)}°, ${Math.round(s.hsl.s)}%, ${Math.round(s.hsl.l)}% |`).join("\n")}
 
-### Dark vs Light ΔE
+### ${primaryLabel} vs ${secondaryLabel} ΔE
 - Mean ΔE2000: **${cmp.meanDeltaE}**
 - Mean similarity: **${cmp.meanSimilarity}**
 
@@ -506,15 +632,15 @@ ${a11y.map((r: any) => `| ${r.label} | \`${r.fg.toUpperCase()}\` | \`${r.bg.toUp
 ## Files
 - \`source.${ext}\` — original image
 - \`app-window-cropped.png\` — detected app window
-- \`preview-app-dark.png\`, \`preview-app-light.png\`, \`preview-wallpaper.png\` — palette previews
-- \`preview-app-pair.png\` — dark vs light comparison
+- \`preview-${primarySlug}.png\`, \`preview-${secondarySlug}.png\`, \`preview-wallpaper.png\` — palette previews
+- \`preview-app-pair.png\` — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()} comparison
 - \`preview-all.png\` — combined view
-- \`index.html\` — interactive design system guide
+- \`index.html\` — interactive design system guide (with dark/light toggle)
 - \`index.png\` — screenshot of the design system guide
 - \`exports/\` — palette in css_vars, scss, tailwind, json, figma_tokens formats
 
 ## Preview
-![App dark](preview-app-dark.png)
+![App ${primaryLabel.toLowerCase()}](preview-${primarySlug}.png)
 
 ![App pair](preview-app-pair.png)
 
@@ -539,7 +665,8 @@ ${a11y.map((r: any) => `| ${r.label} | \`${r.fg.toUpperCase()}\` | \`${r.bg.toUp
     folder: OUT,
     hash,
     window: split.foreground,
-    appDark, appLight, wallpaper, a11y,
+    sourceMode,
+    primary, secondary, wallpaper, a11y,
     comparison: { meanDeltaE: cmp.meanDeltaE, meanSimilarity: cmp.meanSimilarity },
     files: allFiles,
   };

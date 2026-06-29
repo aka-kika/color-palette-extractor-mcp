@@ -62,11 +62,12 @@ server.tool(
 
 server.tool(
   "build_palette_folder",
-  "End-to-end pipeline: detect the app window in a screenshot, extract separate app + wallpaper palettes, derive a neutral light theme, render visual previews, export to CSS/SCSS/Tailwind/Figma/JSON, write a README.md, and produce an HTML design-system guide (with PNG screenshot). Each invocation creates a unique folder.",
+  "End-to-end pipeline: detect the app window in a screenshot, extract separate app + wallpaper palettes, derive the inverse theme, render visual previews, export to CSS/SCSS/Tailwind/Figma/JSON, write a README.md, and produce an HTML design-system guide (with PNG screenshot) that has a dark/light toggle. Each invocation creates a unique folder. Use target_mode to control which theme is labelled primary: 'auto' (default — detect from source luminance), 'dark', or 'light'. Both themes are always produced.",
   {
     image_url: z.string().url().optional(),
     image_path: z.string().optional(),
     output_dir: z.string().optional(),
+    target_mode: z.enum(["auto", "dark", "light"]).optional(),
   },
   async (args) => {
     if (!args.image_url && !args.image_path) throw new Error("Provide image_url or image_path");
@@ -85,7 +86,10 @@ server.tool(
       src = tmp;
     }
 
-    const result = await buildDeliverableFolder(src!, { outputDir: args.output_dir });
+    const result = await buildDeliverableFolder(src!, {
+      outputDir: args.output_dir,
+      targetMode: args.target_mode,
+    });
 
     return {
       content: [{
@@ -94,8 +98,9 @@ server.tool(
           folder: result.folder,
           hash: result.hash,
           window: result.window,
-          app_dark: result.appDark.map((s) => ({ hex: s.hex, role: s.role, population: s.population })),
-          app_light: result.appLight.map((s) => ({ hex: s.hex, role: s.role })),
+          source_mode: result.sourceMode,
+          primary: result.primary.map((s) => ({ hex: s.hex, role: s.role, population: s.population })),
+          secondary: result.secondary.map((s) => ({ hex: s.hex, role: s.role })),
           wallpaper: result.wallpaper.map((s) => ({ hex: s.hex, role: s.role })),
           a11y: result.a11y,
           comparison: result.comparison,
