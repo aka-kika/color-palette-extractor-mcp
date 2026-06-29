@@ -40,15 +40,48 @@ jobs:
           test -f dist/build.js
           echo "✓ all build artifacts present"
 
-      - name: Smoke-test server boots
-        run: |
-          node dist/server.js </dev/null &
-          SERVER_PID=$!
-          sleep 1
-          if kill -0 $SERVER_PID 2>/dev/null; then
-            echo "✓ server boots cleanly"
-            kill $SERVER_PID
-          else
-            echo "✗ server failed to boot"
-            exit 1
-          fi
+      - name: Smoke-test server (initialize handshake)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { spawn } = require('child_process');
+            const child = spawn('node', ['dist/server.js'], { stdio: ['pipe', 'pipe', 'pipe'] });
+            let stdout = '';
+            let stderr = '';
+            child.stdout.on('data', d => stdout += d.toString());
+            child.stderr.on('data', d => stderr += d.toString());
+
+            // Send a minimal MCP initialize request, then list_tools, then exit.
+            const req = JSON.stringify({
+              jsonrpc: '2.0', id: 1, method: 'initialize',
+              params: {
+                protocolVersion: '2024-11-05',
+                capabilities: {},
+                clientInfo: { name: 'ci', version: '0' },
+              },
+            }) + '\n';
+
+            await new Promise((resolve) => {
+              setTimeout(() => {
+                child.stdin.write(req);
+                setTimeout(resolve, 1500);
+              }, 300);
+            });
+
+            child.kill();
+
+            // The server should have responded with an initialize result containing serverInfo.
+            let parsed;
+            try {
+              const line = stdout.split('\n').filter(Boolean).pop();
+              parsed = JSON.parse(line);
+            } catch (e) {
+              core.setFailed(`Server stdout was not valid JSON: ${stdout.slice(0, 200)}`);
+              return;
+            }
+
+            if (parsed.result && parsed.result.serverInfo && parsed.result.serverInfo.name === 'color-palette-mcp') {
+              core.info(`✓ server boots and responds: ${parsed.result.serverInfo.name} v${parsed.result.serverInfo.version}`);
+            } else {
+              core.setFailed(`Server did not respond correctly. stderr: ${stderr.slice(0, 500)}, parsed: ${JSON.stringify(parsed).slice(0, 500)}`);
+            }
