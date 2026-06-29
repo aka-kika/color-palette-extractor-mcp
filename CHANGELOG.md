@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-06-29
+
+### Fixed
+- HTML design-system guide theme toggle was non-functional. The body's initial class was `theme-show-${primaryLabel.toLowerCase()}` ("light" or "dark"), but the CSS selectors and JS toggler used `theme-show-primary` / `theme-show-secondary`. CSS rules never matched, so both themes were always visible and the button highlight didn't track the visibility. Initial body class is now `theme-show-primary`; the active-state class on the button is no longer duplicated (`class="active active"` → `class="active"`).
+
 ## [0.3.0] - 2026-06-29
 
 ### Added
