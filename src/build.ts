@@ -123,14 +123,22 @@ async function renderThemePair(dark: any[], light: any[], opts: any): Promise<Bu
 function pickDarkRoles(swatches: any[]): any[] {
   const sorted = [...swatches].sort((a, b) => b.population - a.population);
   const bg = sorted[0];
+
+  // Text = lightest cluster (highest l) regardless of saturation.
   const byL = [...swatches].sort((a, b) => b.hsl.l - a.hsl.l);
   const text = byL[0];
-  const bySat = [...swatches].sort((a, b) => b.hsl.s - a.hsl.s);
+
+  // Accent = highest saturation among remaining clusters (skips bg + text).
+  const remaining = swatches.filter((s) => s.hex !== bg.hex && s.hex !== text.hex);
+  const bySat = [...remaining].sort((a, b) => b.hsl.s - a.hsl.s);
   const accent = bySat[0];
-  const midL = [...swatches]
-    .filter((s) => s.hex !== bg.hex && s.hex !== text.hex && s.hex !== accent.hex)
-    .sort((a, b) => a.hsl.l - b.hsl.l);
-  const surface = midL[Math.floor(midL.length / 2)] || bg;
+
+  // Surface = lowest saturation among remaining (most neutral mid-tone).
+  // Falls back to bg if every remaining swatch is highly saturated.
+  const surface = remaining
+    .filter((s) => s.hex !== accent.hex)
+    .sort((a, b) => a.hsl.s - b.hsl.s)[0] || bg;
+
   return [
     { ...bg, role: "background" },
     { ...surface, role: "surface" },
@@ -160,7 +168,19 @@ function pickLightDerivative(darkSwatches: any[]): any[] {
   });
 }
 
-const WALLPAPER_ROLE_NAMES = ["primary", "secondary", "tertiary", "mid_blue", "deep_blue", "soft_blue", "mid_indigo", "ambient_purple"];
+// Names are ordered most-saturated first. The colors dominate so for monochrome/cream
+// wallpapers most roles will be small accents; for chromatic wallpapers each role
+// tends to get a distinct hue family.
+const WALLPAPER_ROLE_NAMES = [
+  "primary",     // highest saturation
+  "secondary",   // next
+  "tertiary",
+  "accent_warm",     // warm-shifted (if present)
+  "accent_cool",     // cool-shifted (if present)
+  "highlight",
+  "shadow",
+  "ambient",     // lowest saturation, usually the dominant base
+];
 
 function pickWallpaperRoles(swatches: any[]): any[] {
   const sorted = [...swatches].sort((a, b) => b.hsl.s - a.hsl.s);

@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Deterministic k-means seeding (`mulberry32`) so re-extracting the same image always produces the same palette. Previously used `Math.random()` and could give slightly different small-cluster assignments between runs.
+- Wallpaper role names are now generic (`primary`, `secondary`, `tertiary`, `accent_warm`, `accent_cool`, `highlight`, `shadow`, `ambient`) — work for any wallpaper color family, not just blues.
+
 ### Changed
-- CI runner bumped from `macos-15` → `macos-26` (matches dev environment).
-- CI matrix dropped Node 20 (deprecated on GitHub runners); keep Node 18 (LTS) and 22 (current LTS).
-- CI smoke-test now performs a real MCP `initialize` handshake instead of a process-alive check, so the server protocol is actually exercised.
+- `pickDarkRoles` now picks **surface** as the lowest-saturation remaining swatch instead of the median lightness. Prevents an accent color from being mis-labeled as the surface tone when the app has no neutral mid-tones.
 
 ## [0.1.0] - 2026-06-29
 

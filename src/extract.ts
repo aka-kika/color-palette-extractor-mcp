@@ -93,9 +93,21 @@ function centroid(points: RGB[]): RGB {
   return { r: r / n, g: g / n, b: b / n };
 }
 
-function kmeansInit(points: RGB[], k: number): RGB[] {
+// Deterministic seeded RNG so re-extracting the same image produces the same palette.
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function kmeansInit(points: RGB[], k: number, seed = 0xc0ffee): RGB[] {
+  const rand = mulberry32(seed);
   // k-means++ seeding.
-  const seeds: RGB[] = [points[Math.floor(Math.random() * points.length)]];
+  const seeds: RGB[] = [points[Math.floor(rand() * points.length)]];
   while (seeds.length < k) {
     const dists = points.map((p) => {
       let m = Infinity;
@@ -103,7 +115,7 @@ function kmeansInit(points: RGB[], k: number): RGB[] {
       return m;
     });
     const total = dists.reduce((a, b) => a + b, 0);
-    let pick = Math.random() * total;
+    let pick = rand() * total;
     let chosen = 0;
     for (let i = 0; i < dists.length; i++) {
       pick -= dists[i];
