@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tested against
+- `IMG_0602.JPG` — dark app on blue/purple gradient wallpaper
+- `55E4D056-7216-4340-AB40-E00046767E9B.JPG` — dark app on cream wallpaper
+- `IMG_0540.JPG` (KIKA design system, dark) — full-window screenshot, no wallpaper. Pipeline extracts the 6 brand swatches (`#0D0D0D`, `#D9D9D9`, `#EBEBEB`, `#7D8698`) accurately; window = full image (correct, no outside context).
+
+### Known limitations
+- Full-bleed screenshots (no surrounding wallpaper) report `window: {x:0, y:0, width:full, height:full}` because the row/column scan can't distinguish "page" from "outside". The output is still correct — there just isn't a wallpaper to extract.
+- On a design-system *page* (vs a real app), the largest non-background cluster is often a *brand swatch sample* rather than a structural surface tone, so `surface`/`text` role labels may not match the spec's intended hierarchy.
+
+## [0.2.1] - 2026-06-29
+
 ### Fixed
 - HTML design-system guide: text color on light-theme swatch cards was hardcoded to white, making hex labels invisible on near-white backgrounds. Now uses `textOn(hex)` per swatch (same heuristic as PNG previews) so each card picks a contrasting text color.
 
