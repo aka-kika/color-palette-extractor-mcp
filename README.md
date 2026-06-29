@@ -34,9 +34,11 @@ MCP server that turns images into accessible, export-ready color palettes. Fully
 
 ```bash
 cd color-palette-mcp
-npm install
+npm ci              # reproducible install (matches CI)
 npm run build
 ```
+
+**Requirements:** Node ≥ 18. CI is verified on Node 18 and 22 (dropped Node 20 because GitHub deprecated it on runners). Runs on `macos-26` runner — your dev machine should be the same for parity.
 
 ## Run locally
 

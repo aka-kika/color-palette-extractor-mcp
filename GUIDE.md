@@ -342,6 +342,36 @@ Open `index.html` in any browser for the interactive guide. The `index.png` is s
 
 ---
 
+## CI & build verification
+
+The repo ships with a GitHub Actions workflow at `.github/workflows/build.yml`. On every push to `main` and every PR:
+
+| Step | What it does |
+|---|---|
+| Install | `npm ci` — reproducible install from `package-lock.json` |
+| Type-check | `npx tsc --noEmit` — catches type errors without emitting JS |
+| Build | `npm run build` — compiles to `dist/` |
+| Verify build output | Asserts every expected `dist/*.js` file exists |
+| Smoke-test | Spawns the server, sends a real JSON-RPC `initialize` request, parses the response, asserts `serverInfo.name === "color-palette-mcp"` |
+
+**Runner matrix:**
+- OS: `macos-26`
+- Node: `[18, 22]`
+
+The build badge in `README.md` reflects the latest run status. Latest green run: see https://github.com/aka-kika/color-palette-mcp/actions.
+
+**Reproducing CI locally:**
+
+```bash
+npm ci
+npm run build
+node dist/server.js   # then send a JSON-RPC initialize from another terminal
+```
+
+The smoke-test step uses `actions/github-script@v7` to drive the server. If you want to test locally without GitHub, the `mcp_smoke.mjs` pattern in this project's commit history is the model.
+
+---
+
 ## File layout
 
 ```
