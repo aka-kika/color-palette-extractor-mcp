@@ -11,8 +11,9 @@ MCP server that turns images into accessible, export-ready color palettes. Fully
 
 ## Tools
 
-- **`build_palette_folder`** ⭐ — *the headline tool.* End-to-end pipeline: detect app window → extract app + wallpaper palettes separately → **detect source mode (dark/light) and derive the inverse** → render previews → write exports in 5 formats → write README.md → generate HTML design-system guide **with a dark/light toggle** → screenshot the guide with headless Chrome. One call, one folder, 25 files.
+- **`build_palette_folder`** ⭐ — *the headline tool.* End-to-end pipeline: detect app window → extract app + wallpaper palettes separately → **detect source mode (dark/light) and derive the inverse** → render previews → write exports in 5 formats → write README.md → generate HTML design-system guide **with a dark/light toggle and themed page chrome** → screenshot the guide with headless Chrome. One call, one folder, 25 files.
 - `target_mode` parameter (`"auto"` / `"dark"` / `"light"`): controls which theme is labelled primary in the deliverable. Both themes are always produced; auto-detect picks primary to match the source luminance.
+- The HTML guide's chrome (page background, panels, header, footer, table, toggle button) is themed to match the palette — LIGHT theme renders on an off-white page, DARK theme renders on a deep-navy page, both with the brand's extracted accent as the toggle highlight. 250ms cross-fade between the two states.
 - **`extract_palette`** — k-means / median-cut extraction from an image URL or path. Optional `min_population_ratio` (default `0.001`) keeps tiny accents alive.
 - **`extract_app_palette`** — auto-detects the app window in a screenshot and returns *separate* foreground (app) and background (wallpaper) palettes.
 - **`score_accessibility`** — WCAG AA/AAA contrast ratios between palette pairs.

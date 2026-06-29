@@ -21,7 +21,7 @@ All 9 tools appear alongside your other MCP servers. No setup required.
 
 | Tool | One-line summary |
 |---|---|
-| ⭐ `build_palette_folder` | **One-call deliverable:** window detect → extract → derive light → render → export → README → HTML guide → PNG screenshot |
+| ⭐ `build_palette_folder` | **One-call deliverable:** window detect → extract → detect source mode → derive both themes → render → export → README → HTML guide (with toggle) → PNG screenshot |
 | `extract_app_palette` | Window-aware extraction: returns app + wallpaper palettes separately |
 | `extract_palette` | Whole-image extraction with optional `min_population_ratio` |
 | `score_accessibility` | WCAG AA/AAA contrast checks |
@@ -40,19 +40,21 @@ All 9 tools appear alongside your other MCP servers. No setup required.
 **Inputs:**
 - `image_url` *or* `image_path` — exactly one required
 - `output_dir` — optional, defaults to `color-palette-mcp/output/`
+- `target_mode` — `"auto"` (default) | `"dark"` | `"light"`. Controls which theme is labelled *primary* in the deliverable. Both themes are always produced.
 
 **What it does, in order:**
 
 1. **Window detection** — scans row/column density of dim-and-desaturated pixels to find the rectangular app/UI region. Auto-detected, no manual coords.
-2. **Palette extraction** — k-means on each region separately (foreground + background), with `min_population_ratio=0` so small accents (status dots, tag colors, icons) survive.
-3. **Role assignment** — picks `background` / `surface` / `text` / `accent` from each region's clusters. Wallpaper gets semantic names (`primary`, `secondary`, `tertiary`, `mid_blue`, `deep_blue`, `ambient_purple`, …).
-4. **Light theme derivation** — inverts each dark color's lightness while keeping hue, desaturating for neutral tones. Accent stays saturated.
-5. **A11y scoring** — WCAG ratios for every non-background color in both themes.
-6. **Visual previews** — PNG strips of swatches for dark, light, wallpaper, and a dark-vs-light pair.
-7. **Exports** — writes 5 formats × 3 palettes (15 files) into `exports/`.
-8. **README.md** — markdown summary with all the numbers.
-9. **HTML design-system guide** — interactive page with cards, contrast tables, a11y badges. Dark-themed.
-10. **PNG screenshot of the guide** — uses headless Chrome for Testing. Saved as `index.png`.
+2. **Palette extraction** — k-means on each region separately (foreground + background), with `min_population_ratio=0` so small accents (status dots, tag colors, icons) survive. Deterministic via `mulberry32` seed — same image gives the same palette every time.
+3. **Source mode detection** — luminance of the dominant cluster decides whether the source is `dark` or `light`. Returned in the JSON response as `source_mode`.
+4. **Role assignment** — mode-aware: `pickRolesForMode(swatches, mode)` picks `background` / `surface` / `text` / `accent` from the clusters. `text` is always the lightness extreme *opposite* to `background`. Wallpaper clusters get hue-agnostic semantic names (`primary`, `secondary`, `tertiary`, `accent_warm`, `accent_cool`, …).
+5. **Dual theme generation** — both a primary theme (matching the source's mode, or whichever mode `target_mode` requested) and a secondary theme (the inverse, derived via `deriveOtherMode`). Symmetric: dark sources yield light derivations and vice versa.
+6. **A11y scoring** — WCAG ratios for every non-background color in both themes.
+7. **Visual previews** — PNG strips of swatches for primary, secondary, wallpaper, and a primary-vs-secondary pair.
+8. **Exports** — writes 5 formats × 3 palettes (15 files) into `exports/`. File slugs are `app-light.*` or `app-dark.*` based on which theme they represent.
+9. **README.md** — markdown summary with all the numbers.
+10. **HTML design-system guide** — interactive page with cards, contrast tables, a11y badges, and a **LIGHT/DARK toggle** in the header that swaps both the swatch content *and* the page chrome (light or dark mood). Toggle state persists in `localStorage`. Active button highlights in the brand's extracted accent color.
+11. **PNG screenshot of the guide** — uses headless Chrome for Testing. Saved as `index.png`.
 
 **Output folder name:** `{stem}_{ISO timestamp}_{8-char sha256}` where stem comes from the source filename. Example:
 
@@ -60,7 +62,7 @@ All 9 tools appear alongside your other MCP servers. No setup required.
 inbox_2026-06-29_13-10-00_a1b2c3d4/
 ```
 
-**Returns (as JSON):** folder path, hash, window dimensions, app-dark/app-light/wallpaper palettes, a11y table, comparison ΔE, full file list.
+**Returns (as JSON):** `folder`, `hash`, `window` dimensions, `source_mode`, `primary`, `secondary`, `wallpaper`, `a11y` table, `comparison` ΔE, full `files` list.
 
 **Limitations:**
 - Headless screenshot requires Chrome for Testing installed at `~/Library/Caches/ms-playwright/...` (or one of the standard install paths). If none found, the HTML guide is still written, but `index.png` is skipped.
@@ -280,23 +282,23 @@ When you call `build_palette_folder`, you get a folder named `{stem}_{timestamp}
 
 ```
 {inbox}_2026-06-29_13-10-00_a1b2c3d4/
-├── README.md                    ← markdown summary
-├── index.html                   ← interactive design system guide
+├── README.md                    ← markdown summary (shows BOTH themes)
+├── index.html                   ← interactive design system guide (themed chrome + LIGHT/DARK toggle)
 ├── index.png                    ← headless Chrome screenshot of guide
 ├── source.{ext}                 ← original image (copied)
 ├── app-window-cropped.png       ← detected app region
-├── preview-app-dark.png         ← 4-up swatch grid
-├── preview-app-light.png
+├── preview-app-{light|dark}.png ← swatch grid (filename reflects theme mode)
 ├── preview-wallpaper.png
-├── preview-app-pair.png         ← dark vs light
+├── preview-app-pair.png         ← primary vs secondary
 ├── preview-all.png              ← app + wallpaper combined
 └── exports/
-    ├── app-dark.{css_vars,scss,tailwind,json,figma}
-    ├── app-light.{css_vars,scss,tailwind,json,figma}
+    ├── app-{light|dark}.{css_vars,scss,tailwind,json,figma}
     └── wallpaper.{css_vars,scss,tailwind,json,figma}
 ```
 
-Open `index.html` in any browser for the interactive guide. The `index.png` is shareable as-is in Slack / PRs.
+**Note:** `preview-app-light.*` or `preview-app-dark.*` are emitted based on which theme is the primary for this source (auto-detected from luminance). On a light source like KIKA's design-system page, the primary is the light theme and the secondary (derived dark) is exported as `app-dark.*`.
+
+Open `index.html` in any browser for the interactive guide. Click `LIGHT` / `DARK` in the header to flip both the swatch content and the page chrome (light theme = off-white panels; dark theme = deep navy panels). The `index.png` is shareable as-is in Slack / PRs.
 
 ---
 
@@ -315,7 +317,7 @@ Open `index.html` in any browser for the interactive guide. The `index.png` is s
 
 **Palette is all one color** → image too small or uniform. Try a larger image, or `count: 3`.
 
-**Roles feel backwards** → palette lacks the lightness range. Add a near-white or near-black, or manually swap `role` fields.
+**Roles feel backwards** → palette lacks the lightness range. The mode detector may have flipped source mode — check `source_mode` in the response. Add a near-white or near-black, or manually swap `role` fields.
 
 **Contrast fails AA** → run `suggest_role` again with the opposite purpose, or use `harmonize` from a darker/lighter seed.
 
