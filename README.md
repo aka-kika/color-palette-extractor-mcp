@@ -1,6 +1,13 @@
 # color-palette-mcp
 
+[![build](https://github.com/aka-kika/color-palette-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/aka-kika/color-palette-mcp/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A518-339933)](https://nodejs.org)
+[![MCP](https://img.shields.io/badge/MCP-stdio-7c3aed)](https://modelcontextprotocol.io)
+
 MCP server that turns images into accessible, export-ready color palettes. Fully local — no image leaves the box. Includes window detection so screenshots get app + wallpaper palettes **separated**, plus a one-call deliverable generator that builds a complete per-image folder with previews, exports, README, and an HTML design-system guide.
+
+**9 tools** · Window-aware extraction · End-to-end deliverable generator · Fully local processing.
 
 ## Tools
 

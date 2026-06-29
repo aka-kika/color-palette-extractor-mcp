@@ -1,0 +1,54 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: build (node ${{ matrix.node-version }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          test -f dist/server.js
+          test -f dist/extract.js
+          test -f dist/window.js
+          test -f dist/build.js
+          echo "✓ all build artifacts present"
+
+      - name: Smoke-test server boots
+        run: |
+          node dist/server.js </dev/null &
+          SERVER_PID=$!
+          sleep 1
+          if kill -0 $SERVER_PID 2>/dev/null; then
+            echo "✓ server boots cleanly"
+            kill $SERVER_PID
+          else
+            echo "✗ server failed to boot"
+            exit 1
+          fi
