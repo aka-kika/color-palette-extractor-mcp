@@ -1,7 +1,7 @@
 // Palette extraction via k-means clustering in RGB space, then re-sorted by perceptual weight.
 import { hexToRgb, rgbToHex, rgbToHsl, type RGB, type Swatch } from "./color.js";
 
-type Method = "kmeans" | "mediancut" | "octree";
+type Method = "kmeans" | "mediancut";
 
 export type ExtractOpts = {
   count?: number;

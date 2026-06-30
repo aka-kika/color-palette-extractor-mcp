@@ -67,10 +67,11 @@ Other agents (goose, Claude, Codex, etc.) can `load_skill color-palette-mcp` to 
 ```bash
 cd color-palette-mcp
 npm ci              # reproducible install (matches CI)
+npm test            # 18 unit tests (color math + SSRF guard)
 npm run build
 ```
 
-**Requirements:** Node ≥ 18. CI is verified on Node 18 and 22 (dropped Node 20 because GitHub deprecated it on runners). Runs on `macos-26` runner — your dev machine should be the same for parity.
+**Requirements:** Node ≥ 18. CI runs on `ubuntu-latest` across Node 18 and 22 (dropped Node 20 because GitHub deprecated it on runners), and gates on type-check, the test suite, and a runtime-dependency `npm audit`.
 
 ### Install as a published package (once released to npm)
 
@@ -120,6 +121,23 @@ Add to your MCP config (e.g. Claude Desktop):
   }
 }
 ```
+
+## Configuration
+
+Both are optional environment variables:
+
+- `PALETTE_OUTPUT_DIR` — where `build_palette_folder` writes its deliverable folders. Defaults to `<cwd>/output`. When wiring into an always-on MCP client, set this to a fixed, writable path so output doesn't land in whatever directory the client happens to launch from.
+- `CHROME_PATH` — path to a Chrome/Chromium binary for the design-guide screenshot. Defaults to a system Google Chrome install on macOS; if unset and no Chrome is found, the HTML guide is still written, just without `index.png`.
+
+## Security
+
+Fully local — no image data leaves the machine. The server is hardened for the case where tool arguments come from an untrusted source (e.g. an agent acting on injected content):
+
+- **No shell** — the headless-Chrome screenshot is spawned with an argument array, so `output_dir` can't be turned into a shell command.
+- **Escaped HTML** — every dynamic value rendered into the design-system guide is HTML-escaped before headless Chrome renders it.
+- **SSRF-guarded fetch** — `image_url` downloads reject private/loopback/link-local hosts and non-http(s) schemes, re-validate each redirect, time out after 10s, and are size-capped at 25 MB.
+
+`image_path` reads and `PALETTE_OUTPUT_DIR` writes are unrestricted by design — run the server with the privileges you'd give any local file tool.
 
 ## Example conversation
 

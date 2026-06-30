@@ -1,6 +1,7 @@
 // Color Palette Extractor MCP server.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 import sharp from "sharp";
 import { extractPalette, type ExtractOpts } from "./extract.js";
@@ -10,18 +11,27 @@ import { harmonize, type Scheme } from "./harmonize.js";
 import { suggestRole, type Purpose } from "./roles.js";
 import { exportPalette, type ExportFormat } from "./export.js";
 import { comparePalettes } from "./compare.js";
+import { fetchImageBuffer } from "./net.js";
 import {
   contrastRatio,
   hexToRgb,
-  rgbToHex,
   rgbToHsl,
   wcagLevel,
   type Swatch,
 } from "./color.js";
 
+// Keep the reported version in sync with package.json (resolves to the package
+// root in both dev — tsx src/server.ts — and the built dist/server.js).
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+
+// Reused validator for hex colors accepted as tool input (#abc or #aabbcc).
+const hexColor = z
+  .string()
+  .regex(/^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/, "Expected a hex color like #1a2b3c or #abc");
+
 const server = new McpServer({
   name: "color-palette-mcp",
-  version: "0.1.0",
+  version: pkg.version,
 });
 
 server.tool(
@@ -31,7 +41,7 @@ server.tool(
     image_url: z.string().url().optional(),
     image_path: z.string().optional(),
     count: z.number().int().min(2).max(12).default(5),
-    method: z.enum(["kmeans", "mediancut", "octree"]).default("kmeans"),
+    method: z.enum(["kmeans", "mediancut"]).default("kmeans"),
     ignore_near_white: z.boolean().default(false),
     ignore_near_black: z.boolean().default(false),
     min_population_ratio: z.number().min(0).max(0.5).default(0.001),
@@ -43,7 +53,7 @@ server.tool(
 
     const opts: ExtractOpts = {
       count: args.count,
-      method: args.method === "octree" ? "kmeans" : args.method,
+      method: args.method,
       ignoreNearWhite: args.ignore_near_white,
       ignoreNearBlack: args.ignore_near_black,
       minPopulationRatio: args.min_population_ratio,
@@ -74,43 +84,54 @@ server.tool(
     if (!args.image_url && !args.image_path) throw new Error("Provide image_url or image_path");
 
     let src: string | undefined = args.image_path;
+    let tmp: string | undefined;
     if (!src && args.image_url) {
-      // Download to a temp file so build.ts can read from disk
+      // Download to a temp file so build.ts can read from disk.
       const fs = await import("node:fs/promises");
       const os = await import("node:os");
       const path = await import("node:path");
-      const res = await fetch(args.image_url);
-      if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
-      const ext = (args.image_url.split(".").pop() || "png").split("?")[0].slice(0, 5);
-      const tmp = path.join(os.tmpdir(), `palette-${Date.now()}.${ext}`);
-      await fs.writeFile(tmp, Buffer.from(await res.arrayBuffer()));
+      const buf = await fetchImageBuffer(args.image_url);
+      // Derive a safe extension from the URL path; default to png. Stripping
+      // everything but [a-z0-9] prevents a stray "/" turning the temp path into
+      // a non-existent subdirectory.
+      const ext =
+        ((args.image_url.split("?")[0].split(".").pop() || "png").replace(/[^a-z0-9]/gi, "") || "png").slice(0, 5);
+      tmp = path.join(os.tmpdir(), `palette-${Date.now()}.${ext}`);
+      await fs.writeFile(tmp, buf);
       src = tmp;
     }
 
-    const result = await buildDeliverableFolder(src!, {
-      outputDir: args.output_dir,
-      targetMode: args.target_mode,
-      brandMode: args.brand_mode,
-    });
+    try {
+      const result = await buildDeliverableFolder(src!, {
+        outputDir: args.output_dir,
+        targetMode: args.target_mode,
+        brandMode: args.brand_mode,
+      });
 
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          folder: result.folder,
-          hash: result.hash,
-          window: result.window,
-          source_mode: result.sourceMode,
-          brand_mode: result.brandMode,
-          primary: result.primary.map((s) => ({ hex: s.hex, role: s.role, population: s.population })),
-          secondary: result.secondary.map((s) => ({ hex: s.hex, role: s.role })),
-          wallpaper: result.wallpaper.map((s) => ({ hex: s.hex, role: s.role })),
-          a11y: result.a11y,
-          comparison: result.comparison,
-          files: result.files,
-        }, null, 2),
-      }],
-    };
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            folder: result.folder,
+            hash: result.hash,
+            window: result.window,
+            source_mode: result.sourceMode,
+            brand_mode: result.brandMode,
+            primary: result.primary.map((s) => ({ hex: s.hex, role: s.role, population: s.population })),
+            secondary: result.secondary.map((s) => ({ hex: s.hex, role: s.role })),
+            wallpaper: result.wallpaper.map((s) => ({ hex: s.hex, role: s.role })),
+            a11y: result.a11y,
+            comparison: result.comparison,
+            files: result.files,
+          }, null, 2),
+        }],
+      };
+    } finally {
+      if (tmp) {
+        const fs = await import("node:fs/promises");
+        await fs.unlink(tmp).catch(() => {});
+      }
+    }
   }
 );
 
@@ -185,10 +206,10 @@ server.tool(
   "Compute WCAG contrast ratios for palette pairs.",
   {
     palette: z.array(z.object({
-      hex: z.string(),
+      hex: hexColor,
       role: z.string().optional(),
     })),
-    pairs: z.array(z.tuple([z.string(), z.string()])).optional(),
+    pairs: z.array(z.tuple([hexColor, hexColor])).optional(),
   },
   async ({ palette, pairs }) => {
     const results: unknown[] = [];
@@ -218,7 +239,7 @@ server.tool(
   "Assign semantic roles (background/text/accent/...) to a palette.",
   {
     palette: z.array(z.object({
-      hex: z.string(),
+      hex: hexColor,
       rgb: z.object({ r: z.number(), g: z.number(), b: z.number() }),
       hsl: z.object({ h: z.number(), s: z.number(), l: z.number() }),
       population: z.number(),
@@ -239,7 +260,7 @@ server.tool(
   "Export a palette to a developer/designer file format.",
   {
     palette: z.array(z.object({
-      hex: z.string(),
+      hex: hexColor,
       rgb: z.object({ r: z.number(), g: z.number(), b: z.number() }),
       hsl: z.object({ h: z.number(), s: z.number(), l: z.number() }),
       population: z.number(),
@@ -259,7 +280,7 @@ server.tool(
   "harmonize",
   "Generate a harmonic palette from a seed color.",
   {
-    seed_hex: z.string(),
+    seed_hex: hexColor,
     scheme: z.enum(["analogous", "triadic", "complementary", "split", "tetradic", "monochrome"]),
   },
   async ({ seed_hex, scheme }) => {
@@ -293,8 +314,8 @@ server.tool(
   "compare_palettes",
   "Compute perceptual ΔE2000 distances between two palettes.",
   {
-    a: z.array(z.string()),
-    b: z.array(z.string()),
+    a: z.array(hexColor),
+    b: z.array(hexColor),
   },
   async ({ a, b }) => {
     const result = comparePalettes(a, b);
@@ -373,10 +394,7 @@ async function loadImage(url?: string, path?: string): Promise<Buffer> {
     return fs.readFile(path);
   }
   if (url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
-    const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
+    return fetchImageBuffer(url);
   }
   throw new Error("Provide image_url or image_path");
 }
@@ -409,8 +427,6 @@ function matchVibe(description: string): Swatch[] {
     return { hex, rgb, hsl: rgbToHsl(rgb), population: 0, role: `color_${i + 1}` };
   });
 }
-
-void rgbToHex;
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

@@ -11,8 +11,10 @@ export type Swatch = {
 };
 
 export function hexToRgb(hex: string): RGB {
-  const clean = hex.replace("#", "").trim();
-  if (clean.length !== 6) throw new Error(`Invalid hex: ${hex}`);
+  let clean = hex.trim().replace(/^#/, "");
+  // Expand 3-digit shorthand (#abc → #aabbcc).
+  if (/^[0-9a-fA-F]{3}$/.test(clean)) clean = clean.split("").map((c) => c + c).join("");
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) throw new Error(`Invalid hex: ${hex}`);
   return {
     r: parseInt(clean.slice(0, 2), 16),
     g: parseInt(clean.slice(2, 4), 16),

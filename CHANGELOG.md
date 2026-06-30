@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-01
+
+Security-hardening + reliability release. No change to the happy-path output of any tool.
+
+### Security
+- **Command injection fixed** — the headless-Chrome screenshot step now uses `execFileSync` with an argument array instead of `execSync` with an interpolated shell string. The caller-supplied `output_dir` can no longer be interpreted as a shell command.
+- **HTML/JS injection fixed** — all dynamic values interpolated into the generated `index.html` (source filename, title, swatch role/hex) are now HTML-escaped, so a crafted source filename can't inject script into the guide that headless Chrome then renders.
+- **SSRF + DoS guard** — new `src/net.ts` hardens every `image_url` fetch: blocks private/loopback/link-local/CGNAT hosts (literal IPs and DNS-resolved), rejects non-http(s) schemes, re-validates each redirect hop, enforces a 10s timeout, and caps downloads at 25 MB.
+- Downloaded temp files are now cleaned up after `build_palette_folder` completes.
+
+### Fixed
+- **Inverse-theme saturation** — `deriveOtherMode` previously multiplied source saturation and hard-capped it at 50, so no derived color could exceed 50% saturation (washed-out accents). It now treats the role target as an absolute saturation (e.g. ~85% for accents) while preserving true grays.
+- **`image_url` with no file extension** no longer breaks the temp-file path (extension is sanitized, falls back to `png`).
+- **Hex inputs are validated** — all tool hex parameters accept `#abc` or `#aabbcc` via a shared schema and return a clean validation error instead of throwing mid-handler. `hexToRgb` now expands 3-digit shorthand.
+- Reported server version is read from `package.json` (no longer hardcoded / drifting).
+- The generated README only lists `index.png` when the screenshot actually succeeded.
+
+### Changed
+- **`extract_palette` `method`** enum dropped the unimplemented `octree` value (it silently aliased k-means). Now `kmeans | mediancut`, matching the docs.
+- **CI** runs on `ubuntu-latest` (was `macos-26`), and now runs the test suite and a runtime-dependency `npm audit` gate.
+
+### Added
+- **Test suite (vitest)** — 18 unit tests covering the color math (`hexToRgb`/`rgbToHex`, HSL round-trips, `contrastRatio`, `wcagLevel`, `deltaE2000`) and the SSRF guard. Run with `npm test`.
+
 ## [0.4.1] - 2026-06-29
 
 ### Added

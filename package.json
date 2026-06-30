@@ -1,6 +1,6 @@
 {
   "name": "color-palette-extractor-mcp",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "MCP server that extracts color palettes from images, derives dark/light themes, scores WCAG accessibility, and exports to CSS/SCSS/Tailwind/Figma tokens. Generates a complete per-image deliverable folder with preview PNGs and an interactive HTML design system guide (with a LIGHT/DARK toggle that re-themes the page chrome to match the brand).",
   "type": "module",
   "main": "dist/server.js",
@@ -18,6 +18,7 @@
     "build": "tsc",
     "dev": "tsx src/server.ts",
     "start": "node dist/server.js",
+    "test": "vitest run",
     "prepublishOnly": "npm run build",
     "prepack": "npm run build"
   },
@@ -62,6 +63,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.0"
   }
 }

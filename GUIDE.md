@@ -366,9 +366,11 @@ Open `index.html` in any browser for the interactive guide. Click `LIGHT` / `DAR
 
 **Server not appearing in goose** → check `goose info --verbose | grep palette`. If missing, the config entry was overwritten — restore from backup or re-add.
 
-**Image fetch fails** → the server uses `fetch()` for URLs, so it needs network access. For local files, use `image_path` instead.
+**Image fetch fails** → the server fetches URLs over HTTP(S) and now refuses private/loopback/link-local hosts (SSRF guard), non-http(s) schemes, responses over 25 MB, and anything slower than a 10s timeout. For a local file or an internal host, use `image_path` instead of `image_url`.
 
-**`build_palette_folder` doesn't generate `index.png`** → Chrome for Testing wasn't found. The HTML guide is still written. Install via `npx playwright install chromium` or set `CHROME_PATH`.
+**`build_palette_folder` writes output somewhere unexpected** → it defaults to `<cwd>/output`. Set `PALETTE_OUTPUT_DIR` (or pass `output_dir`) to pin a fixed location, especially when the server is launched by an always-on MCP client.
+
+**`build_palette_folder` doesn't generate `index.png`** → Chrome for Testing wasn't found. The HTML guide is still written (and its README won't list `index.png`). Install via `npx playwright install chromium` or set `CHROME_PATH`.
 
 ---
 
@@ -390,13 +392,15 @@ The repo ships with a GitHub Actions workflow at `.github/workflows/build.yml`. 
 | Step | What it does |
 |---|---|
 | Install | `npm ci` — reproducible install from `package-lock.json` |
+| Audit | `npm audit --omit=dev --audit-level=high` — fails on high/critical runtime-dep advisories |
 | Type-check | `npx tsc --noEmit` — catches type errors without emitting JS |
+| Test | `npm test` — 18 vitest unit tests (color math + SSRF guard) |
 | Build | `npm run build` — compiles to `dist/` |
 | Verify build output | Asserts every expected `dist/*.js` file exists |
 | Smoke-test | Spawns the server, sends a real JSON-RPC `initialize` request, parses the response, asserts `serverInfo.name === "color-palette-mcp"` |
 
 **Runner matrix:**
-- OS: `macos-26`
+- OS: `ubuntu-latest`
 - Node: `[18, 22]`
 
 The build badge in `README.md` reflects the latest run status. Latest green run: see https://github.com/aka-kika/color-palette-extractor-mcp/actions.
