@@ -282,15 +282,16 @@ When you call `build_palette_folder`, you get a folder named `{stem}_{timestamp}
 
 ```
 {inbox}_2026-06-29_13-10-00_a1b2c3d4/
-├── README.md                    ← markdown summary (shows BOTH themes)
-├── index.html                   ← interactive design system guide (themed chrome + LIGHT/DARK toggle)
-├── index.png                    ← headless Chrome screenshot of guide
-├── source.{ext}                 ← original image (copied)
-├── app-window-cropped.png       ← detected app region
-├── preview-app-{light|dark}.png ← swatch grid (filename reflects theme mode)
-├── preview-wallpaper.png
-├── preview-app-pair.png         ← primary vs secondary
-├── preview-all.png              ← app + wallpaper combined
+├── README.md                       ← markdown summary (shows BOTH themes)
+├── index.html                      ← interactive design system guide (themed chrome + LIGHT/DARK toggle)
+├── index.png                       ← headless Chrome screenshot of guide
+├── source.{ext}                    ← original image (copied)
+├── app-window-cropped.png          ← detected app region
+├── preview-app-{light|dark}.png    ← swatch grid (filename reflects theme mode)
+├── preview-app-pair-light.png      ← primary vs secondary, on light bg (swap with toggle)
+├── preview-app-pair-dark.png       ← primary vs secondary, on dark bg (swap with toggle)
+├── preview-app-pair.png            ← static fallback (light variant) for README contexts
+├── preview-wallpaper.png           ← omitted when wallpaper.length === 0
 └── exports/
     ├── app-{light|dark}.{css_vars,scss,tailwind,json,figma}
     └── wallpaper.{css_vars,scss,tailwind,json,figma}
@@ -298,7 +299,17 @@ When you call `build_palette_folder`, you get a folder named `{stem}_{timestamp}
 
 **Note:** `preview-app-light.*` or `preview-app-dark.*` are emitted based on which theme is the primary for this source (auto-detected from luminance). On a light source like KIKA's design-system page, the primary is the light theme and the secondary (derived dark) is exported as `app-dark.*`.
 
-Open `index.html` in any browser for the interactive guide. Click `LIGHT` / `DARK` in the header to flip both the swatch content and the page chrome (light theme = off-white panels; dark theme = deep navy panels). The `index.png` is shareable as-is in Slack / PRs.
+**Conditional rendering in HTML:**
+- The `Wallpaper (excluded from app)` section is omitted entirely when no wallpaper colors were extracted. For a mockup on a neutral page (no separate wallpaper region) the section just doesn't render.
+- `preview-wallpaper.png` is only written when wallpaper is non-empty; otherwise it's omitted to avoid a broken image icon.
+
+**Themed page chrome (v0.3.2–v0.3.4):**
+- The page chrome is themed to match the palette, not hardcoded navy. LIGHT theme renders on an off-white page, DARK theme on a deep-navy page.
+- Chrome tints (tag pill, toggle button highlight, section labels) are derived from the brand's extracted accent RGB, not from a hardcoded blue. On a warm-grey palette the dark-mode tag reads warm-grey; on a slate palette it reads slate.
+- The toggle button has a 250ms cross-fade and persists its state in `localStorage`.
+- Section titles (h2) stay bold and high-contrast on either chrome — explicit `font-weight: 600` for h2 and `700` for theme-block h2, with color bound to `--text`.
+
+Open `index.html` in any browser for the interactive guide. Click `LIGHT` / `DARK` in the header to flip both the swatch content, the page chrome, AND the app pair preview background. The `index.png` is shareable as-is in Slack / PRs.
 
 ---
 
