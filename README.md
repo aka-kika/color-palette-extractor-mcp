@@ -11,20 +11,36 @@ MCP server that turns images into accessible, export-ready color palettes. Fully
 
 ## Tools
 
-- **`build_palette_folder`** ⭐ — *the headline tool.* End-to-end pipeline: detect app window → extract app + wallpaper palettes separately → **detect source mode (dark/light) and derive the inverse** → render previews → write exports in 5 formats → write README.md → generate HTML design-system guide **with a dark/light toggle and themed page chrome** → screenshot the guide with headless Chrome. One call, one folder, 25 files.
-- `target_mode` parameter (`"auto"` / `"dark"` / `"light"`): controls which theme is labelled primary in the deliverable. Both themes are always produced; auto-detect picks primary to match the source luminance.
-- `brand_mode` parameter (`"auto"` / `"brand"` / `"ui"`): controls whether the source is treated as a brand palette or a UI screenshot. In **brand** mode, exports are `brand.{...}` (the tokens to ship) plus `demo-inverse.{...}` (a preview of the brand inverted — clearly labelled, *not* a recommended UI theme). The HTML guide uses "Brand palette" headings and a banner explaining the inverse is for reference only. **Auto** picks brand mode when the window fills the image and there's no wallpaper (e.g. design-system sheets, mockups on neutral); otherwise UI mode (current behaviour, `app-{light,dark}.{...}` exports).
+### `build_palette_folder` — the headline tool
+
+End-to-end pipeline: detect app window → extract app + wallpaper palettes separately → detect source mode (dark/light) and derive the inverse → render previews → write exports in 5 formats → write README.md → generate HTML design-system guide with a dark/light toggle and themed page chrome → screenshot the guide with headless Chrome. One call, one folder, 25 files.
+
+Parameters:
+- `target_mode` (`"auto"` / `"dark"` / `"light"`) — controls which theme is labelled primary in the deliverable. Both themes are always produced; auto-detect picks primary to match the source luminance.
+- `brand_mode` (`"auto"` / `"brand"` / `"ui"`) — controls whether the source is treated as a brand palette or a UI screenshot. In **brand** mode, exports are `brand.{...}` (the tokens to ship) plus `demo-inverse.{...}` (a preview of the brand inverted — clearly labelled, *not* a recommended UI theme). The HTML guide uses "Brand palette" headings and a banner explaining the inverse is for reference only. **Auto** picks brand mode when the window fills the image and there's no wallpaper (e.g. design-system sheets, mockups on neutral); otherwise UI mode (current behaviour, `app-{light,dark}.{...}` exports).
+
+What you get:
 - The HTML guide's chrome (page background, panels, header, footer, table, toggle button) is themed to match the palette — LIGHT theme renders on an off-white page, DARK theme renders on a deep-navy page, both with the brand's extracted accent as the toggle highlight. 250ms cross-fade between the two states.
 - Chrome is tinted from the brand accent (not hardcoded blue) — the dark-mode tag pill, toggle button highlight, and section labels all use shades of the brand's accent. On a warm-grey palette the page reads warm-grey, on a slate palette it reads slate, on a pink palette it reads pink.
 - The App pair preview swaps with the toggle (two static PNGs, one light, one dark, swapped via CSS). Section titles stay bold and dark on light chrome, bold and light on dark chrome.
-- **`extract_palette`** — k-means / median-cut extraction from an image URL or path. Optional `min_population_ratio` (default `0.001`) keeps tiny accents alive.
-- **`extract_app_palette`** — auto-detects the app window in a screenshot and returns *separate* foreground (app) and background (wallpaper) palettes.
-- **`score_accessibility`** — WCAG AA/AAA contrast ratios between palette pairs.
-- **`suggest_role`** — assigns `background` / `text` / `accent` / `surface` / `muted` for a chosen purpose.
-- **`export_palette`** — outputs `css_vars` / `scss` / `tailwind` / `figma_tokens` / `json` / `ase`.
-- **`harmonize`** — analogous / triadic / complementary / split / tetradic / monochrome from a seed.
-- **`match_vibe`** — curated palette for a mood description ("forest dusk", "tokyo neon", …).
-- **`compare_palettes`** — ΔE2000 perceptual diff between two palettes.
+
+### The other eight tools
+
+- `extract_palette` — k-means / median-cut extraction from an image URL or path. Optional `min_population_ratio` (default `0.001`) keeps tiny accents alive.
+
+- `extract_app_palette` — auto-detects the app window in a screenshot and returns *separate* foreground (app) and background (wallpaper) palettes.
+
+- `score_accessibility` — WCAG AA/AAA contrast ratios between palette pairs.
+
+- `suggest_role` — assigns `background` / `text` / `accent` / `surface` / `muted` for a chosen purpose.
+
+- `export_palette` — outputs `css_vars` / `scss` / `tailwind` / `figma_tokens` / `json` / `ase`.
+
+- `harmonize` — analogous / triadic / complementary / split / tetradic / monochrome from a seed.
+
+- `match_vibe` — curated palette for a mood description ("forest dusk", "tokyo neon", …).
+
+- `compare_palettes` — ΔE2000 perceptual diff between two palettes.
 
 ## Resources
 
