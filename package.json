@@ -46,6 +46,10 @@
     "url": "https://github.com/aka-kika/color-palette-extractor-mcp/issues"
   },
   "homepage": "https://github.com/aka-kika/color-palette-extractor-mcp#readme",
+  "author": {
+    "name": "aka-kika",
+    "url": "https://akakika.com"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=18"
