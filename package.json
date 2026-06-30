@@ -40,12 +40,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aka-kika/color-palette-mcp.git"
+    "url": "git+https://github.com/aka-kika/color-palette-extractor-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/aka-kika/color-palette-mcp/issues"
+    "url": "https://github.com/aka-kika/color-palette-extractor-mcp/issues"
   },
-  "homepage": "https://github.com/aka-kika/color-palette-mcp#readme",
+  "homepage": "https://github.com/aka-kika/color-palette-extractor-mcp#readme",
   "license": "MIT",
   "engines": {
     "node": ">=18"

@@ -1,6 +1,6 @@
 # color-palette-mcp
 
-[![build](https://github.com/aka-kika/color-palette-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/aka-kika/color-palette-mcp/actions/workflows/build.yml)
+[![build](https://github.com/aka-kika/color-palette-extractor-mcp/actions/workflows/build.yml/badge.svg)](https://github.com/aka-kika/color-palette-extractor-mcp/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-339933)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-stdio-7c3aed)](https://modelcontextprotocol.io)
@@ -77,7 +77,7 @@ Add to your MCP config (e.g. Claude Desktop):
   "mcpServers": {
     "color-palette": {
       "command": "node",
-      "args": ["/Users/gamba/Documents/gooooose/color-palette-mcp/dist/server.js"]
+      "args": ["/Users/gamba/Documents/gooooose/color-palette-extractor-mcp/dist/server.js"]
     }
   }
 }

@@ -114,4 +114,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Requires Node 18+ and the official `@modelcontextprotocol/sdk` (no wrapper frameworks).
 - Headless Chrome screenshot of the HTML guide requires Chrome for Testing at `~/Library/Caches/ms-playwright/...` (installable via `npx playwright install chromium`). Skipped gracefully if not present.
 
-[0.1.0]: https://github.com/aka-kika/color-palette-mcp/releases/tag/v0.1.0
+[0.1.0]: https://github.com/aka-kika/color-palette-extractor-mcp/releases/tag/v0.1.0

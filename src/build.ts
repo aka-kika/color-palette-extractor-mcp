@@ -12,7 +12,7 @@ import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import fs from "node:fs/promises";
 
-const ROOT = process.env.PALETTE_OUTPUT_DIR || "/Users/gamba/Documents/gooooose/color-palette-mcp/output";
+const ROOT = process.env.PALETTE_OUTPUT_DIR || "/Users/gamba/Documents/gooooose/color-palette-extractor-mcp/output";
 const CHROME_PATHS = [
   "/Users/gamba/Library/Caches/ms-playwright/chromium-1217/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",

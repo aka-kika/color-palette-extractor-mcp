@@ -39,7 +39,7 @@ All 9 tools appear alongside your other MCP servers. No setup required.
 
 **Inputs:**
 - `image_url` *or* `image_path` — exactly one required
-- `output_dir` — optional, defaults to `color-palette-mcp/output/`
+- `output_dir` — optional, defaults to `color-palette-extractor-mcp/output/`
 - `target_mode` — `"auto"` (default) | `"dark"` | `"light"`. Controls which theme is labelled *primary* in the deliverable. Both themes are always produced.
 - `brand_mode` — `"auto"` (default) | `"brand"` | `"ui"`. Controls whether the source is treated as a brand palette or a UI screenshot. See the **Brand mode vs UI mode** section below.
 
@@ -399,7 +399,7 @@ The repo ships with a GitHub Actions workflow at `.github/workflows/build.yml`. 
 - OS: `macos-26`
 - Node: `[18, 22]`
 
-The build badge in `README.md` reflects the latest run status. Latest green run: see https://github.com/aka-kika/color-palette-mcp/actions.
+The build badge in `README.md` reflects the latest run status. Latest green run: see https://github.com/aka-kika/color-palette-extractor-mcp/actions.
 
 **Reproducing CI locally:**
 
