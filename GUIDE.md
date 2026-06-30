@@ -416,7 +416,7 @@ The smoke-test step uses `actions/github-script@v7` to drive the server. If you 
 ## File layout
 
 ```
-color-palette-mcp/
+color-palette-extractor-mcp/
 ├── README.md             ← install blurb + headline tool teaser
 ├── GUIDE.md              ← you are here — full operator's manual
 ├── GUIDE.html            ← rendered version of this guide (built from GUIDE.md)
