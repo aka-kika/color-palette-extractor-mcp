@@ -413,6 +413,17 @@ The smoke-test step uses `actions/github-script@v7` to drive the server. If you 
 
 ---
 
+## Agent skill
+
+A ready-to-use `color-palette-mcp` skill is bundled with this repo at `.skills/color-palette-mcp/`. It includes:
+
+- `SKILL.md` (163 lines) — when to use, decision tree, parameter cheat sheet, JSON response shape, failure modes
+- `references/full-tool-reference.md` (149 lines) — every parameter of every tool
+- `references/brand-vs-ui-examples.md` (78 lines) — worked examples on real images
+- `references/output-folder-shape.md` (90 lines) — what files are emitted in each mode
+
+The skill is intended for agents (goose, Claude, Codex, etc.) that need to know how to use this MCP without reading the full guide. It follows the same agentskills.io format as the other skills in `~/.config/goose/skills/` and is also installed at `~/.config/goose/skills/color-palette-mcp/` for goose sessions.
+
 ## File layout
 
 ```

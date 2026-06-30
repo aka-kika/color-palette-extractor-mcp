@@ -51,6 +51,17 @@ What you get:
 - `design_system_audit` — audit a palette for a11y + structural quality.
 - `a11y_fixer` — propose a re-tuned palette that passes WCAG AA.
 
+## Agent skill
+
+A ready-to-use `color-palette-mcp` skill is bundled with the repo at `.skills/color-palette-mcp/`. It includes:
+
+- `SKILL.md` — entry point: when to use the tool, the one tool you actually need (`build_palette_folder`), the decision tree for `brand_mode` (auto / brand / ui), parameter cheat sheet, auto-detection rules, JSON response shape, and failure modes the agent should watch for
+- `references/full-tool-reference.md` — every parameter of every tool, exhaustively
+- `references/brand-vs-ui-examples.md` — worked examples on real images of when each mode is right
+- `references/output-folder-shape.md` — exactly what files are emitted in each mode
+
+Other agents (goose, Claude, Codex, etc.) can `load_skill color-palette-mcp` to immediately know how to use this MCP without reading the full README. The skill is not part of the npm tarball — it's bundled in the GitHub source for direct cloning.
+
 ## Install
 
 ```bash

@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-06-29
+
+### Added
+- **Agent skill bundle** at `.skills/color-palette-mcp/`. A ready-to-use SKILL.md (163 lines) plus 3 deep-dive references (full tool reference, brand-vs-ui examples, output folder shape) that other agents (goose, Claude, Codex, etc.) can `load_skill` to immediately know when to use this MCP and which tool to call. The skill is installed at `~/.config/goose/skills/color-palette-mcp/` for goose sessions. Not part of the npm tarball — bundled in the GitHub source for direct cloning.
+
+### Documentation
+- README + GUIDE updated through v0.4.0.
+- CHANGELOG: new `## [0.4.1]` entry for the skill bundle.
+
 ## [0.4.0] - 2026-06-29
+
+
 
 ### Added
 - **`brand_mode` parameter** for `build_palette_folder` — controls whether the source is treated as a brand palette or a UI screenshot. Three values:
