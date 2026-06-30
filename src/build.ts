@@ -12,11 +12,13 @@ import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import fs from "node:fs/promises";
 
-const ROOT = process.env.PALETTE_OUTPUT_DIR || "/Users/gamba/Documents/gooooose/color-palette-extractor-mcp/output";
+const ROOT = process.env.PALETTE_OUTPUT_DIR || `${process.cwd()}/output`;
+// Override with CHROME_PATH (e.g. point at a `npx playwright install chromium`
+// build); otherwise fall back to a system Chrome install.
 const CHROME_PATHS = [
-  "/Users/gamba/Library/Caches/ms-playwright/chromium-1217/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+  process.env.CHROME_PATH,
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-];
+].filter(Boolean) as string[];
 
 async function findChrome(): Promise<string | null> {
   for (const p of CHROME_PATHS) {

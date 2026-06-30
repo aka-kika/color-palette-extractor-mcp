@@ -104,7 +104,7 @@ Add to your MCP config (e.g. Claude Desktop):
   "mcpServers": {
     "color-palette": {
       "command": "node",
-      "args": ["/Users/gamba/Documents/gooooose/color-palette-extractor-mcp/dist/server.js"]
+      "args": ["/absolute/path/to/color-palette-extractor-mcp/dist/server.js"]
     }
   }
 }
