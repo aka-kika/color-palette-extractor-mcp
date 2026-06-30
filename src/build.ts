@@ -207,7 +207,8 @@ function detectSourceMode(swatches: any[]): "dark" | "light" {
 function arrangeThemes(
   raw: any[],
   targetMode: "auto" | "dark" | "light",
-): { sourceMode: "dark" | "light"; primary: any[]; secondary: any[] } {
+  brandMode: boolean = false,
+): { sourceMode: "dark" | "light"; primary: any[]; secondary: any[]; brandMode: boolean } {
   const sourceMode = detectSourceMode(raw);
   const resolvedTarget: "dark" | "light" = targetMode === "auto" ? sourceMode : targetMode;
 
@@ -218,7 +219,26 @@ function arrangeThemes(
   // still the source-derived palette, secondary is the opposite derivation.
   const primary = pickRolesForMode(raw, resolvedTarget);
   const secondary = deriveOtherMode(primary, sourceMode);
-  return { sourceMode, primary, secondary };
+  return { sourceMode, primary, secondary, brandMode };
+}
+
+/**
+ * Auto-detect whether the source image is a brand palette (design system page,
+ * color sheet, brand showcase) versus a real UI screenshot. Heuristic: when
+ * window detection reports wallpaper=0 and the foreground region fills the
+ * entire image, it's almost certainly a brand sheet rather than an app
+ * screenshot. Can be overridden via the `brand_mode` tool parameter.
+ */
+function autoDetectBrandMode(
+  window: { width: number; height: number },
+  totalPixels: number,
+  wallpaperCount: number,
+): boolean {
+  // If the window covers the entire resized image AND there's no wallpaper,
+  // it's likely a brand sheet (full-window screenshot, mockup on neutral, etc.).
+  const windowFillsImage = window.width * window.height >= totalPixels * 0.95;
+  const noWallpaper = wallpaperCount === 0;
+  return windowFillsImage && noWallpaper;
 }
 
 // Names are ordered most-saturated first. The colors dominate so for monochrome/cream
@@ -306,7 +326,7 @@ function chromePalettes(brandAccentHex: string) {
 }
 
 function htmlGuide(opts: any): string {
-  const { title, src, window: win, primary, secondary, wallpaper, a11y, primaryLabel, secondaryLabel, sourceMode } = opts;
+  const { title, src, window: win, primary, secondary, wallpaper, a11y, primaryLabel, secondaryLabel, sourceMode, brandMode = false, primaryStripTitle = "", secondaryStripTitle = "" } = opts;
   const brandAccent = (primary.find((s: any) => s.role === "accent") || {}).hex || "#4f6bce";
   const chrome = chromePalettes(brandAccent);
   const renderCard = (s: any) => {
@@ -341,10 +361,16 @@ function htmlGuide(opts: any): string {
           <td>${onBg.toFixed(2)} <small>(${wcagLevel(onBg)})</small></td>
         </tr>`;
     }).join("");
-    const sourceLabel = themeLabel === primaryLabel ? "matches source" : "derived";
+    const isPrimary = id === "primary";
+    // Brand-mode tag labels: primary is "brand" (matches source); secondary is
+    // explicitly "demo inverse" so designers don't accidentally ship it as a
+    // UI theme. UI-mode keeps "matches source" / "derived".
+    const sourceLabel = brandMode
+      ? (isPrimary ? "brand" : "demo inverse")
+      : (isPrimary ? "matches source" : "derived");
     return `
       <section class="theme theme-${id}" data-theme="${themeLabel.toLowerCase()}">
-        <header style="color: var(--text);"><h2 style="color: var(--text); font-weight: 700;">${themeLabel} theme</h2><span class="tag">${sourceLabel}</span></header>
+        <header style="color: var(--text);"><h2 style="color: var(--text); font-weight: 700;">${themeLabel}${brandMode ? "" : " theme"}</h2><span class="tag">${sourceLabel}</span></header>
         <div class="palette">${swatches.map(renderCard).join("")}</div>
         <table>
           <thead><tr><th></th><th>Hex</th><th>Role</th><th>HSL</th><th>Contrast on ${bgHex.toUpperCase()}</th></tr></thead>
@@ -474,9 +500,10 @@ function htmlGuide(opts: any): string {
     </div>
   </section>
   <section>
-    <h2>App theme</h2>
-    ${renderThemeBlock(primaryLabel, primary, "primary")}
-    ${renderThemeBlock(secondaryLabel, secondary, "secondary")}
+    <h2>${brandMode ? "Brand palette" : "App theme"}</h2>
+    ${brandMode ? `<p style="color: var(--muted); font-size: 13px; margin: -10px 0 20px;">Extracted brand swatches, plus a demo inverse for reference. The inverse is generated from the brand and is <strong>not</strong> a recommended UI theme — use the <code>brand.*</code> exports for design tokens.</p>` : ""}
+    ${renderThemeBlock(brandMode ? primaryStripTitle : primaryLabel, primary, "primary")}
+    ${renderThemeBlock(brandMode ? secondaryStripTitle : secondaryLabel, secondary, "secondary")}
   </section>
   <section>
     <h2>Accessibility</h2>
@@ -524,6 +551,7 @@ export type BuildResult = {
   hash: string;
   window: { x: number; y: number; width: number; height: number };
   sourceMode: "dark" | "light";
+  brandMode: boolean; // true when source is treated as a brand palette, not a UI
   primary: any[];   // the palette matching the source (or requested target)
   secondary: any[]; // the inverse theme, derived from primary
   wallpaper: any[];
@@ -543,14 +571,26 @@ export type BuildResult = {
  *   - `"dark"` — force primary to be the dark theme
  *   - `"light"` — force primary to be the light theme
  *
- * Both themes are always produced regardless of targetMode.
+ * `brandMode` controls whether the source is treated as a brand palette or a UI:
+ *   - `"auto"` (default) — heuristically detect based on window detection and
+ *     wallpaper count (full-window + no wallpaper → brand)
+ *   - `"brand"` — treat as a brand palette: exports use `brand.{...}` filenames,
+ *     the secondary theme is labelled "demo inverse" in HTML, README is explicit
+ *   - `"ui"` — treat as a UI: current behavior (two themes, app-{light,dark} exports)
+ *
+ * Both themes are always produced regardless of targetMode and brandMode.
  */
 export async function buildDeliverableFolder(
   src: string,
-  opts: { outputDir?: string; targetMode?: "auto" | "dark" | "light" } = {},
+  opts: {
+    outputDir?: string;
+    targetMode?: "auto" | "dark" | "light";
+    brandMode?: "auto" | "brand" | "ui";
+  } = {},
 ): Promise<BuildResult> {
   const outDir = opts.outputDir || ROOT;
   const targetMode = opts.targetMode || "auto";
+  const brandModeArg = opts.brandMode || "auto";
   const fileBuf = await fs.readFile(src);
   const hash = createHash("sha256").update(fileBuf).digest("hex").slice(0, 8);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").split("T").join("_").slice(0, 19);
@@ -577,7 +617,17 @@ export async function buildDeliverableFolder(
     ? extractPalette(split.backgroundPixels, split.backgroundCount, 1, { count: 12, method: "kmeans", minPopulationRatio: 0 })
     : [];
 
-  const { sourceMode, primary, secondary } = arrangeThemes(fgRaw, targetMode);
+  // Auto-detect brand mode when the source is "auto" — heuristically a brand
+  // palette is one where the window detection reports wallpaper=0 and the
+  // foreground region fills the entire image (full-window screenshot, mockup
+  // on a neutral page, design system sheet).
+  const totalPixels = info.width * info.height;
+  const brandMode =
+    brandModeArg === "brand" ? true :
+    brandModeArg === "ui" ? false :
+    autoDetectBrandMode(split.foreground, totalPixels, split.backgroundCount);
+
+  const { sourceMode, primary, secondary } = arrangeThemes(fgRaw, targetMode, brandMode);
   const wallpaper = pickWallpaperRoles(bgRaw);
 
   const a11y: any[] = [];
@@ -597,35 +647,44 @@ export async function buildDeliverableFolder(
 
   const primaryLabel = primary[0].hsl.l < 50 ? "DARK" : "LIGHT";
   const secondaryLabel = secondary[0].hsl.l < 50 ? "DARK" : "LIGHT";
-  const primarySlug = `app-${primaryLabel.toLowerCase()}`;
-  const secondarySlug = `app-${secondaryLabel.toLowerCase()}`;
+
+  // File naming: brand mode emits `brand.*` and `demo-inverse.*` (since the
+  // inverse isn't a real UI theme — it's just a preview of what the brand
+  // looks like inverted). UI mode emits `app-{light|dark}.*` as before.
+  const primarySlug = brandMode ? "brand" : `app-${primaryLabel.toLowerCase()}`;
+  const secondarySlug = brandMode ? "demo-inverse" : `app-${secondaryLabel.toLowerCase()}`;
+  const primaryStripTitle = brandMode ? "BRAND" : `APP ${primaryLabel}`;
+  const secondaryStripTitle = brandMode ? "DEMO INVERSE" : `APP ${secondaryLabel}`;
+  const pairTitle = brandMode
+    ? `BRAND vs INVERSE — demo only`
+    : `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`;
 
   await fs.writeFile(`${OUT}/preview-${primarySlug}.png`,
-    await renderStrip(primary, { title: `APP ${primaryLabel}`, tileSize: 200, cols: 4 }));
+    await renderStrip(primary, { title: primaryStripTitle, tileSize: 200, cols: 4 }));
   await fs.writeFile(`${OUT}/preview-${secondarySlug}.png`,
-    await renderStrip(secondary, { title: `APP ${secondaryLabel}`, tileSize: 200, cols: 4 }));
+    await renderStrip(secondary, { title: secondaryStripTitle, tileSize: 200, cols: 4 }));
   await fs.writeFile(`${OUT}/preview-wallpaper.png`, await renderStrip(wallpaper, { title: "WALLPAPER", tileSize: 200, cols: 4 }));
   // Two pair previews so the HTML toggle can swap them. Each preview has a
   // matching background tint (light or dark) so the swatch row above each
   // pair reads correctly against the page chrome in either mode.
   await fs.writeFile(`${OUT}/preview-app-pair-light.png`,
     await renderThemePair(primary, secondary, {
-      title: `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`,
-      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200, bg: "#f6f7fb",
+      title: pairTitle,
+      firstLabel: primaryStripTitle, secondLabel: secondaryStripTitle, tileSize: 200, bg: "#f6f7fb",
     }));
   await fs.writeFile(`${OUT}/preview-app-pair-dark.png`,
     await renderThemePair(primary, secondary, {
-      title: `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`,
-      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200, bg: "#0f1117",
+      title: pairTitle,
+      firstLabel: primaryStripTitle, secondLabel: secondaryStripTitle, tileSize: 200, bg: "#0f1117",
     }));
   // Static fallback (default to the light variant).
   await fs.writeFile(`${OUT}/preview-app-pair.png`,
     await renderThemePair(primary, secondary, {
-      title: `APP THEME — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()}`,
-      firstLabel: primaryLabel, secondLabel: secondaryLabel, tileSize: 200, bg: "#f6f7fb",
+      title: pairTitle,
+      firstLabel: primaryStripTitle, secondLabel: secondaryStripTitle, tileSize: 200, bg: "#f6f7fb",
     }));
   await fs.writeFile(`${OUT}/preview-all.png`,
-    await renderStrip([...primary, ...wallpaper], { title: "FULL — app + wallpaper", tileSize: 160, cols: 6 }));
+    await renderStrip([...primary, ...wallpaper], { title: "FULL — palette + wallpaper", tileSize: 160, cols: 6 }));
 
   await fs.mkdir(`${OUT}/exports`, { recursive: true });
   const exportFiles: Record<string, string> = {
@@ -653,6 +712,7 @@ export async function buildDeliverableFolder(
     title: stem, src: src.split("/").pop(),
     window: split.foreground, primary, secondary, wallpaper, a11y,
     primaryLabel, secondaryLabel, sourceMode,
+    brandMode, primaryStripTitle, secondaryStripTitle,
   });
   await fs.writeFile(`${OUT}/index.html`, html);
 
@@ -670,26 +730,26 @@ export async function buildDeliverableFolder(
 
 Generated by **color-palette-mcp** on ${new Date().toISOString().split("T")[0]}.
 
-**Source mode:** \`${sourceMode}\` · **Primary theme:** \`${primaryLabel.toLowerCase()}\` · **Secondary theme:** \`${secondaryLabel.toLowerCase()}\`
+${brandMode ? `> **Mode:** Brand palette (${primaryStripTitle.toLowerCase()}). The \`demo-inverse\` export below is generated for visual reference only — it shows what the brand looks like inverted; it is **not** a recommended UI theme. Use the \`brand.*\` exports for design tokens.\n\n` : ""}**Source mode:** \`${sourceMode}\`${brandMode ? " · **Brand mode:** on" : ""} · **Primary theme:** \`${brandMode ? primaryStripTitle.toLowerCase() : primaryLabel.toLowerCase()}\` · **Secondary theme:** \`${brandMode ? "demo inverse" : secondaryLabel.toLowerCase()}\`
 
 ## Source
 - **File:** \`${src.split("/").pop()}\`
 - **Detected window:** ${split.foreground.width}×${split.foreground.height} at (${split.foreground.x}, ${split.foreground.y})
 - **Hash:** \`${hash}\`
 
-## App palette (extracted from window)
+## ${brandMode ? "Brand palette" : "App palette (extracted from window)"}
 
-### ${primaryLabel} theme (primary)
+### ${primaryStripTitle} (primary${brandMode ? " — matches source" : ""})
 | Role | Hex | RGB | HSL | Population |
 |---|---|---|---|---|
 ${primary.map((s: any) => `| ${s.role} | \`${s.hex.toUpperCase()}\` | ${Math.round(s.rgb.r)}, ${Math.round(s.rgb.g)}, ${Math.round(s.rgb.b)} | ${Math.round(s.hsl.h)}°, ${Math.round(s.hsl.s)}%, ${Math.round(s.hsl.l)}% | ${s.population.toLocaleString()} px |`).join("\n")}
 
-### ${secondaryLabel} theme (derived)
+### ${secondaryStripTitle}${brandMode ? "" : ` (derived)`}
 | Role | Hex | RGB | HSL |
 |---|---|---|---|
 ${secondary.map((s: any) => `| ${s.role} | \`${s.hex.toUpperCase()}\` | ${Math.round(s.rgb.r)}, ${Math.round(s.rgb.g)}, ${Math.round(s.rgb.b)} | ${Math.round(s.hsl.h)}°, ${Math.round(s.hsl.s)}%, ${Math.round(s.hsl.l)}% |`).join("\n")}
 
-### ${primaryLabel} vs ${secondaryLabel} ΔE
+### ${primaryStripTitle} vs ${secondaryStripTitle} ΔE
 - Mean ΔE2000: **${cmp.meanDeltaE}**
 - Mean similarity: **${cmp.meanSimilarity}**
 
@@ -705,16 +765,18 @@ ${a11y.map((r: any) => `| ${r.label} | \`${r.fg.toUpperCase()}\` | \`${r.bg.toUp
 
 ## Files
 - \`source.${ext}\` — original image
-- \`app-window-cropped.png\` — detected app window
-- \`preview-${primarySlug}.png\`, \`preview-${secondarySlug}.png\`, \`preview-wallpaper.png\` — palette previews
-- \`preview-app-pair.png\` — ${primaryLabel.toLowerCase()} vs ${secondaryLabel.toLowerCase()} comparison
+- \`app-window-cropped.png\` — detected window
+- \`preview-${primarySlug}.png\`${brandMode ? " — brand palette swatches" : ` — ${primaryLabel.toLowerCase()} theme swatches`}
+- \`preview-${secondarySlug}.png\`${brandMode ? " — demo inverse (for preview only)" : ` — ${secondaryLabel.toLowerCase()} theme swatches`}
+- \`preview-wallpaper.png\` — wallpaper swatches (if any)
+- \`preview-app-pair.png\` — primary vs secondary side-by-side
 - \`preview-all.png\` — combined view
 - \`index.html\` — interactive design system guide (with dark/light toggle)
 - \`index.png\` — screenshot of the design system guide
 - \`exports/\` — palette in css_vars, scss, tailwind, json, figma_tokens formats
 
 ## Preview
-![App ${primaryLabel.toLowerCase()}](preview-${primarySlug}.png)
+![Primary](preview-${primarySlug}.png)
 
 ![App pair](preview-app-pair.png)
 
@@ -740,6 +802,7 @@ ${a11y.map((r: any) => `| ${r.label} | \`${r.fg.toUpperCase()}\` | \`${r.bg.toUp
     hash,
     window: split.foreground,
     sourceMode,
+    brandMode,
     primary, secondary, wallpaper, a11y,
     comparison: { meanDeltaE: cmp.meanDeltaE, meanSimilarity: cmp.meanSimilarity },
     files: allFiles,

@@ -13,6 +13,7 @@ MCP server that turns images into accessible, export-ready color palettes. Fully
 
 - **`build_palette_folder`** ⭐ — *the headline tool.* End-to-end pipeline: detect app window → extract app + wallpaper palettes separately → **detect source mode (dark/light) and derive the inverse** → render previews → write exports in 5 formats → write README.md → generate HTML design-system guide **with a dark/light toggle and themed page chrome** → screenshot the guide with headless Chrome. One call, one folder, 25 files.
 - `target_mode` parameter (`"auto"` / `"dark"` / `"light"`): controls which theme is labelled primary in the deliverable. Both themes are always produced; auto-detect picks primary to match the source luminance.
+- `brand_mode` parameter (`"auto"` / `"brand"` / `"ui"`): controls whether the source is treated as a brand palette or a UI screenshot. In **brand** mode, exports are `brand.{...}` (the tokens to ship) plus `demo-inverse.{...}` (a preview of the brand inverted — clearly labelled, *not* a recommended UI theme). The HTML guide uses "Brand palette" headings and a banner explaining the inverse is for reference only. **Auto** picks brand mode when the window fills the image and there's no wallpaper (e.g. design-system sheets, mockups on neutral); otherwise UI mode (current behaviour, `app-{light,dark}.{...}` exports).
 - The HTML guide's chrome (page background, panels, header, footer, table, toggle button) is themed to match the palette — LIGHT theme renders on an off-white page, DARK theme renders on a deep-navy page, both with the brand's extracted accent as the toggle highlight. 250ms cross-fade between the two states.
 - Chrome is tinted from the brand accent (not hardcoded blue) — the dark-mode tag pill, toggle button highlight, and section labels all use shades of the brand's accent. On a warm-grey palette the page reads warm-grey, on a slate palette it reads slate, on a pink palette it reads pink.
 - The App pair preview swaps with the toggle (two static PNGs, one light, one dark, swapped via CSS). Section titles stay bold and dark on light chrome, bold and light on dark chrome.
@@ -44,6 +45,22 @@ npm run build
 
 **Requirements:** Node ≥ 18. CI is verified on Node 18 and 22 (dropped Node 20 because GitHub deprecated it on runners). Runs on `macos-26` runner — your dev machine should be the same for parity.
 
+### Install as a published package (once released to npm)
+
+```bash
+npm install -g color-palette-extractor-mcp   # then use the bin name in any MCP client
+# or
+npx color-palette-extractor-mcp              # one-off invocation
+```
+
+**Publishing yourself:** this repo's source is published under the name `color-palette-extractor-mcp` (the original `color-palette-mcp` is taken on npm by another author). To release a new version:
+
+```bash
+npm login                # one-time
+npm version patch        # or minor / major
+npm publish              # runs `prepublishOnly` → `npm run build` first
+```
+
 ## Run locally
 
 ```bash
@@ -54,12 +71,24 @@ npm run dev
 
 Add to your MCP config (e.g. Claude Desktop):
 
+**Local install (current setup):**
 ```json
 {
   "mcpServers": {
     "color-palette": {
       "command": "node",
       "args": ["/Users/gamba/Documents/gooooose/color-palette-mcp/dist/server.js"]
+    }
+  }
+}
+```
+
+**After `npm install -g color-palette-extractor-mcp`:**
+```json
+{
+  "mcpServers": {
+    "color-palette": {
+      "command": "color-palette-extractor-mcp"
     }
   }
 }

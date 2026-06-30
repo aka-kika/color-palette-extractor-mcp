@@ -62,12 +62,13 @@ server.tool(
 
 server.tool(
   "build_palette_folder",
-  "End-to-end pipeline: detect the app window in a screenshot, extract separate app + wallpaper palettes, derive the inverse theme, render visual previews, export to CSS/SCSS/Tailwind/Figma/JSON, write a README.md, and produce an HTML design-system guide (with PNG screenshot) that has a dark/light toggle. Each invocation creates a unique folder. Use target_mode to control which theme is labelled primary: 'auto' (default — detect from source luminance), 'dark', or 'light'. Both themes are always produced.",
+  "End-to-end pipeline: detect the app window in a screenshot, extract separate app + wallpaper palettes, derive the inverse theme, render visual previews, export to CSS/SCSS/Tailwind/Figma/JSON, write a README.md, and produce an HTML design-system guide (with PNG screenshot) that has a dark/light toggle. Each invocation creates a unique folder. Use target_mode to control which theme is labelled primary: 'auto' (default — detect from source luminance), 'dark', or 'light'. Both themes are always produced. Use brand_mode to control whether the source is treated as a brand palette or a UI screenshot: 'auto' (default — heuristic), 'brand' (use 'brand.*' filenames and label inverse as 'demo inverse'), or 'ui' (current behaviour, 'app-{light,dark}.*' filenames).",
   {
     image_url: z.string().url().optional(),
     image_path: z.string().optional(),
     output_dir: z.string().optional(),
     target_mode: z.enum(["auto", "dark", "light"]).optional(),
+    brand_mode: z.enum(["auto", "brand", "ui"]).optional(),
   },
   async (args) => {
     if (!args.image_url && !args.image_path) throw new Error("Provide image_url or image_path");
@@ -89,6 +90,7 @@ server.tool(
     const result = await buildDeliverableFolder(src!, {
       outputDir: args.output_dir,
       targetMode: args.target_mode,
+      brandMode: args.brand_mode,
     });
 
     return {
@@ -99,6 +101,7 @@ server.tool(
           hash: result.hash,
           window: result.window,
           source_mode: result.sourceMode,
+          brand_mode: result.brandMode,
           primary: result.primary.map((s) => ({ hex: s.hex, role: s.role, population: s.population })),
           secondary: result.secondary.map((s) => ({ hex: s.hex, role: s.role })),
           wallpaper: result.wallpaper.map((s) => ({ hex: s.hex, role: s.role })),

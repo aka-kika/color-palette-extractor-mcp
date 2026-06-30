@@ -1,0 +1,21 @@
+# Build artifacts
+node_modules/
+dist/
+output/
+
+# Test fixtures and local artifacts
+*.bak
+*.test
+*.log
+*.tsbuildinfo
+/tmp/
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Local config
+.env
+.env.local
+*.local

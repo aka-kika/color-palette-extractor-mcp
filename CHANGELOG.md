@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-29
+
+### Added
+- **`brand_mode` parameter** for `build_palette_folder` — controls whether the source is treated as a brand palette or a UI screenshot. Three values:
+  - `"auto"` (default) — heuristic: full-window source + zero wallpaper → brand mode; otherwise UI mode
+  - `"brand"` — always treat as brand palette, regardless of source structure
+  - `"ui"` — always treat as UI screenshot, regardless of source structure
+- **Brand-mode exports** — when `brand_mode` is on, exports are emitted as `brand.{css_vars,scss,tailwind,json,figma}` (the design tokens to ship) plus `demo-inverse.{...}` (a preview of the brand inverted — clearly labelled, *not* a recommended UI theme).
+- **Brand-mode HTML guide** — section heading changes from "App theme" to "Brand palette". Banner paragraph explains the demo inverse is for reference only and tells designers to use `brand.*` exports. Tag labels switch from "matches source" / "derived" to "brand" / "demo inverse". Strip titles show "BRAND" and "DEMO INVERSE".
+- **Brand-mode README** — prepended with a blockquote explaining the mode, plus the metadata line shows "Brand mode: on" and "Primary theme: brand" instead of "light"/"dark".
+- **`autoDetectBrandMode()` helper** — heuristic used by `auto`. Returns true when `window.area >= totalPixels * 0.95` AND `wallpaperCount === 0`. Same-shape function as `detectSourceMode`.
+- **`brand_mode` returned in JSON** — `build_palette_folder` response now includes `brand_mode: bool`.
+- **Package renamed for npm** — `color-palette-mcp` was already taken on npm, so we publish as `color-palette-extractor-mcp` (still under the same GitHub repo, MIT license). Bin name matches: `color-palette-extractor-mcp`. `package.json` now includes `repository`, `bugs`, `homepage`, `keywords`, `files` allowlist, `engines.node >= 18`, and `prepublishOnly` script.
+
 ## [0.3.4] - 2026-06-29
 
 ### Fixed

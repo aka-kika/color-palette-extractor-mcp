@@ -41,6 +41,7 @@ All 9 tools appear alongside your other MCP servers. No setup required.
 - `image_url` *or* `image_path` — exactly one required
 - `output_dir` — optional, defaults to `color-palette-mcp/output/`
 - `target_mode` — `"auto"` (default) | `"dark"` | `"light"`. Controls which theme is labelled *primary* in the deliverable. Both themes are always produced.
+- `brand_mode` — `"auto"` (default) | `"brand"` | `"ui"`. Controls whether the source is treated as a brand palette or a UI screenshot. See the **Brand mode vs UI mode** section below.
 
 **What it does, in order:**
 
@@ -67,6 +68,29 @@ inbox_2026-06-29_13-10-00_a1b2c3d4/
 **Limitations:**
 - Headless screenshot requires Chrome for Testing installed at `~/Library/Caches/ms-playwright/...` (or one of the standard install paths). If none found, the HTML guide is still written, but `index.png` is skipped.
 - ~2-3 seconds per invocation. Mostly k-means + PNG composition.
+
+---
+
+## Brand mode vs UI mode
+
+`build_palette_folder` has two distinct output shapes depending on what you point it at:
+
+| Aspect | UI mode (default for real apps) | Brand mode (design-system sheets, mockups on neutral) |
+|---|---|---|
+| Triggered by | `wallpaper.length > 0` OR the window doesn't fill the image | `wallpaper.length === 0` AND the window fills the image |
+| Primary export | `app-{light,dark}.{...}` | `brand.{...}` |
+| Inverse export | `app-{dark,light}.{...}` (a real alternative UI theme) | `demo-inverse.{...}` (clearly labelled, NOT a recommended UI theme) |
+| HTML section heading | "App theme" | "Brand palette" |
+| Banner paragraph | (none) | Explains the inverse is for reference only; use `brand.*` for design tokens |
+| Tag labels | "matches source" / "derived" | "brand" / "demo inverse" |
+| Strip / preview titles | "APP LIGHT" / "APP DARK" | "BRAND" / "DEMO INVERSE" |
+| Pair-preview title | "APP THEME — light vs dark" | "BRAND vs INVERSE — demo only" |
+
+Auto-detection: `brand_mode: "auto"` (the default) picks brand mode when the detected window covers ≥ 95% of the image AND `wallpaper.length === 0`. So a real app screenshot with a wallpaper falls back to UI mode automatically; a brand sheet or mockup on a neutral background gets brand mode automatically.
+
+Override: pass `brand_mode: "brand"` to force brand mode regardless of structure (e.g. you have a real app screenshot but only want the brand tokens), or `brand_mode: "ui"` to force UI mode for a brand sheet (e.g. you want to see what the brand looks like inverted as a *real* dark-mode UI candidate).
+
+The key design decision: **in brand mode the inverse is generated for visual reference only**, not as a recommended theme. A brand's "dark mode" is a *design* problem, not an inversion problem — letting designers see what an inverted brand looks like is useful, but the deliverable makes clear it shouldn't be shipped as-is.
 
 ---
 
@@ -286,14 +310,18 @@ When you call `build_palette_folder`, you get a folder named `{stem}_{timestamp}
 ├── index.html                      ← interactive design system guide (themed chrome + LIGHT/DARK toggle)
 ├── index.png                       ← headless Chrome screenshot of guide
 ├── source.{ext}                    ← original image (copied)
-├── app-window-cropped.png          ← detected app region
-├── preview-app-{light|dark}.png    ← swatch grid (filename reflects theme mode)
+├── app-window-cropped.png          ← detected window
+├── preview-app-{light|dark}.png    ← swatch grid (UI mode — filename reflects theme mode)
+├── preview-brand.png               ← swatch grid (BRAND mode — brand swatches)
+├── preview-demo-inverse.png        ← swatch grid (BRAND mode — for visual reference only)
 ├── preview-app-pair-light.png      ← primary vs secondary, on light bg (swap with toggle)
 ├── preview-app-pair-dark.png       ← primary vs secondary, on dark bg (swap with toggle)
 ├── preview-app-pair.png            ← static fallback (light variant) for README contexts
 ├── preview-wallpaper.png           ← omitted when wallpaper.length === 0
 └── exports/
-    ├── app-{light|dark}.{css_vars,scss,tailwind,json,figma}
+    ├── app-{light|dark}.{css_vars,scss,tailwind,json,figma}    ← UI mode
+    ├── brand.{css_vars,scss,tailwind,json,figma}                ← BRAND mode (the tokens to ship)
+    ├── demo-inverse.{css_vars,scss,tailwind,json,figma}         ← BRAND mode (preview only, NOT a UI theme)
     └── wallpaper.{css_vars,scss,tailwind,json,figma}
 ```
 

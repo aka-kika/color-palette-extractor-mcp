@@ -1,15 +1,54 @@
 {
-  "name": "color-palette-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for extracting, harmonizing, scoring, and exporting color palettes from images.",
+  "name": "color-palette-extractor-mcp",
+  "version": "0.3.4",
+  "description": "MCP server that extracts color palettes from images, derives dark/light themes, scores WCAG accessibility, and exports to CSS/SCSS/Tailwind/Figma tokens. Generates a complete per-image deliverable folder with preview PNGs and an interactive HTML design system guide (with a LIGHT/DARK toggle that re-themes the page chrome to match the brand).",
   "type": "module",
+  "main": "dist/server.js",
   "bin": {
-    "color-palette-mcp": "./dist/server.js"
+    "color-palette-extractor-mcp": "./dist/server.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "GUIDE.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "prepublishOnly": "npm run build",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "color-palette",
+    "color-extraction",
+    "design-system",
+    "design-tokens",
+    "wcag",
+    "accessibility",
+    "tailwind",
+    "figma-tokens",
+    "css-variables",
+    "image-processing",
+    "k-means",
+    "color-harmony",
+    "brand-colors"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aka-kika/color-palette-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aka-kika/color-palette-mcp/issues"
+  },
+  "homepage": "https://github.com/aka-kika/color-palette-mcp#readme",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
