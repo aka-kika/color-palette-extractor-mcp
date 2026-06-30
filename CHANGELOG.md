@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2026-06-29
+
+### Fixed
+- **Light-mode section titles were too thin** — h2 headings (`App theme`, `LIGHT theme`, `Accessibility`) inherited body color but had no explicit weight, so they rendered at default browser weight (400). On a light-mode page the title text faded into the chrome and looked "bright and not visible". Now h2 has explicit `color: var(--text)` + `font-weight: 600`; theme-block h2 (`<header><h2>${themeLabel} theme</h2>`) gets inline `font-weight: 700`. Both colors are bound to the chrome `--text` variable so dark mode stays bold-but-not-bright.
+
 ## [0.3.3] - 2026-06-29
 
 ### Fixed

@@ -344,7 +344,7 @@ function htmlGuide(opts: any): string {
     const sourceLabel = themeLabel === primaryLabel ? "matches source" : "derived";
     return `
       <section class="theme theme-${id}" data-theme="${themeLabel.toLowerCase()}">
-        <header><h2>${themeLabel} theme</h2><span class="tag">${sourceLabel}</span></header>
+        <header style="color: var(--text);"><h2 style="color: var(--text); font-weight: 700;">${themeLabel} theme</h2><span class="tag">${sourceLabel}</span></header>
         <div class="palette">${swatches.map(renderCard).join("")}</div>
         <table>
           <thead><tr><th></th><th>Hex</th><th>Role</th><th>HSL</th><th>Contrast on ${bgHex.toUpperCase()}</th></tr></thead>
@@ -390,11 +390,11 @@ function htmlGuide(opts: any): string {
   body { margin: 0; font: 14px/1.5 -apple-system, system-ui, "SF Pro Text", sans-serif; background: var(--bg); color: var(--text); transition: background-color 0.25s ease, color 0.25s ease; }
   header, main, .swatch, table, .src-info, .theme-toggle, footer { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
   header { padding: 32px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  header h1 { margin: 0; font-size: 22px; }
+  header h1 { margin: 0; font-size: 22px; color: var(--text); }
   header .meta { color: var(--muted); font-size: 13px; }
   main { max-width: 1100px; margin: 0 auto; padding: 32px 40px 80px; }
   section { margin-bottom: 56px; }
-  h2 { font-size: 18px; margin: 0 0 20px; letter-spacing: 0.5px; }
+  h2 { font-size: 18px; margin: 0 0 20px; letter-spacing: 0.5px; color: var(--text); font-weight: 600; }
   .palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .swatch { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   .chip { aspect-ratio: 4/3; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; }
