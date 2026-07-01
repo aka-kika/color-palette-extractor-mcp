@@ -38,6 +38,8 @@ build_palette_folder(
 
 Returns a JSON summary with `folder`, `hash`, `window`, `source_mode`, `brand_mode`, `primary`, `secondary`, `wallpaper`, `a11y`, `comparison`, `files`.
 
+**Why one call saves tokens:** everything — previews, exports, the HTML guide, the README — is written to **disk**, and the tool returns only this compact summary, not the images or token files. You get the whole deliverable without paying context tokens for it. Read individual files from the `folder` only when you actually need one.
+
 The folder contains:
 - `index.html` — interactive design system guide with a LIGHT/DARK toggle
 - `index.png` — headless Chrome screenshot of the guide (shareable in PRs)

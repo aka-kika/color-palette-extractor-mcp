@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>akakika-home — Design System</title>
+<style>
+  /* Two chrome palettes — applied by JS depending on body.theme-show-* class.
+     This way the page chrome follows the toggle: light chrome when showing
+     the light theme, dark chrome when showing the dark theme. The accent
+     always comes from the brand palette. */
+  :root { --accent: #6d80a6; }
+  body.theme-show-primary {
+    --bg: #f6f7fb; --panel: #ffffff; --border: #e3e6ee;
+    --text: #1a1d27; --muted: #6c7286;
+    --tagBg: rgba(109,128,166,0.10); --tagFg: rgb(99,108,125);
+    --thBg: rgba(0,0,0,0.03); --dot: rgba(0,0,0,0.10); --btnFg: #ffffff;
+  }
+  body.theme-show-secondary {
+    --bg: #0f1117; --panel: #1c2030; --border: #2a2f42;
+    --text: #e8e9ee; --muted: #8a92a8;
+    --tagBg: rgba(109,128,166,0.14); --tagFg: rgb(170,180,201);
+    --thBg: rgba(255,255,255,0.03); --dot: rgba(255,255,255,0.10); --btnFg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 -apple-system, system-ui, "SF Pro Text", sans-serif; background: var(--bg); color: var(--text); transition: background-color 0.25s ease, color 0.25s ease; }
+  header, main, .swatch, table, .src-info, .theme-toggle, footer { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
+  header { padding: 32px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  header h1 { margin: 0; font-size: 22px; color: var(--text); }
+  header .meta { color: var(--muted); font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 40px 80px; }
+  section { margin-bottom: 56px; }
+  h2 { font-size: 18px; margin: 0 0 20px; letter-spacing: 0.5px; color: var(--text); font-weight: 600; }
+  .palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .swatch { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .chip { aspect-ratio: 4/3; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; }
+  .chip .role { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; opacity: 0.8; }
+  .chip .hex { font: 700 18px/1 ui-monospace, "SF Mono", monospace; }
+  .chip .pop { font-size: 11px; opacity: 0.7; }
+  .meta { padding: 10px 14px; font-size: 12px; color: var(--muted); }
+  .meta div { display: flex; justify-content: space-between; }
+  .meta .k { color: var(--muted); }
+  .meta .v { color: var(--text); font-family: ui-monospace, monospace; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  th { background: var(--thBg); font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  code { font-family: ui-monospace, "SF Mono", monospace; font-size: 13px; }
+  .dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; vertical-align: middle; border: 1px solid var(--dot); margin-right: 8px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .badge-aaa { background: #1e6b3a; color: #d4f5dd; }
+  .badge-aa { background: #4f6bce; color: #e0e7ff; }
+  .badge-aalarge { background: #2d3f6b; color: #c8d4f0; }
+  .badge-fail { background: #5a1f25; color: #f5c8cc; }
+  .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .preview-row img { width: 100%; border-radius: 10px; border: 1px solid var(--border); }
+  .src-info { background: var(--panel); padding: 16px 20px; border-radius: 10px; border: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .src-info div span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .src-info div strong { font-size: 16px; }
+  footer { padding: 20px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; background: var(--tagBg); color: var(--tagFg); margin-left: 8px; vertical-align: middle; }
+
+  /* Theme toggle */
+  .theme-toggle { display: inline-flex; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 3px; gap: 2px; }
+  .theme-toggle button { background: transparent; border: none; padding: 6px 14px; font: 600 11px/1 ui-monospace, monospace; letter-spacing: 1px; color: var(--muted); cursor: pointer; border-radius: 4px; transition: background 0.15s ease, color 0.15s ease; }
+  .theme-toggle button.active { background: var(--accent); color: var(--btnFg); }
+  .theme-toggle button:hover:not(.active) { color: var(--text); }
+
+  /* Theme visibility — both are rendered, hidden via display:none when not active */
+  body.theme-show-primary .theme-secondary { display: none; }
+  body.theme-show-secondary .theme-primary { display: none; }
+
+  /* Theme-aware pair preview — show the light/dark variant matching the page chrome. */
+  .pair-preview { position: relative; }
+  .pair-preview img { width: 100%; border-radius: 10px; border: 1px solid var(--border); display: block; }
+  body.theme-show-primary .pair-preview .pair-dark  { display: none; }
+  body.theme-show-secondary .pair-preview .pair-light { display: none; }
+
+  /* Hide the wallpaper section entirely when there are no wallpaper colors
+     (empty palette, broken image). Skips the section header + empty div. */
+  section.wallpaper-section { display: none; }
+</style>
+</head>
+<body class="theme-show-primary">
+<header>
+  <h1>akakika-home</h1>
+  <div style="display:flex; gap:24px; align-items:center;">
+    <div class="meta">source: <code>light</code> · generated by color-palette-mcp</div>
+    <div class="theme-toggle" role="tablist" aria-label="Theme">
+      <button type="button" data-set-theme="primary" class="active">LIGHT</button>
+      <button type="button" data-set-theme="secondary">DARK</button>
+    </div>
+  </div>
+</header>
+<main>
+  <section>
+    <h2>Source</h2>
+    <div class="src-info">
+      <div><span>Source</span><strong><code>akakika-home.png</code></strong></div>
+      <div><span>Window</span><strong>601×376 @ (0,0)</strong></div>
+      <div><span>App colors</span><strong>4</strong></div>
+      <div><span>Wallpaper colors</span><strong>0</strong></div>
+    </div>
+    <div class="preview-row" style="margin-top:16px">
+      <img src="app-window-cropped.png" alt="Detected app window">
+      <div class="pair-preview">
+        <img class="pair-light" src="preview-app-pair-light.png" alt="Theme comparison (light)">
+        <img class="pair-dark"  src="preview-app-pair-dark.png"  alt="Theme comparison (dark)">
+      </div>
+    </div>
+  </section>
+  <section>
+    <h2>Brand palette</h2>
+    <p style="color: var(--muted); font-size: 13px; margin: -10px 0 20px;">Extracted brand swatches, plus a demo inverse for reference. The inverse is generated from the brand and is <strong>not</strong> a recommended UI theme — use the <code>brand.*</code> exports for design tokens.</p>
+    
+      <section class="theme theme-primary" data-theme="brand">
+        <header style="color: var(--text);"><h2 style="color: var(--text); font-weight: 700;">BRAND</h2><span class="tag">brand</span></header>
+        <div class="palette">
+    <div class="swatch">
+      <div class="chip" style="background:#d9d9d9; color:#0f1117">
+        <span class="role">background</span>
+        <span class="hex">#D9D9D9</span>
+        <span class="pop">198,956 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">217, 217, 217</span></div>
+        <div><span class="k">HSL</span> <span class="v">37°, 0%, 85%</span></div>
+      </div>
+    </div>
+    
+    <div class="swatch">
+      <div class="chip" style="background:#0d0d0d; color:#f7f7f8">
+        <span class="role">surface</span>
+        <span class="hex">#0D0D0D</span>
+        <span class="pop">7,033 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">13, 13, 13</span></div>
+        <div><span class="k">HSL</span> <span class="v">217°, 0%, 5%</span></div>
+      </div>
+    </div>
+    
+    <div class="swatch">
+      <div class="chip" style="background:#010101; color:#f7f7f8">
+        <span class="role">text</span>
+        <span class="hex">#010101</span>
+        <span class="pop">1,465 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">1, 1, 1</span></div>
+        <div><span class="k">HSL</span> <span class="v">300°, 0%, 0%</span></div>
+      </div>
+    </div>
+    
+    <div class="swatch">
+      <div class="chip" style="background:#6d80a6; color:#f7f7f8">
+        <span class="role">accent</span>
+        <span class="hex">#6D80A6</span>
+        <span class="pop">596 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">109, 128, 166</span></div>
+        <div><span class="k">HSL</span> <span class="v">220°, 24%, 54%</span></div>
+      </div>
+    </div>
+    </div>
+        <table>
+          <thead><tr><th></th><th>Hex</th><th>Role</th><th>HSL</th><th>Contrast on #D9D9D9</th></tr></thead>
+          <tbody>
+        <tr>
+          <td><div class="dot" style="background:#d9d9d9"></div></td>
+          <td><code>#D9D9D9</code></td>
+          <td><code>background</code></td>
+          <td>37, 0, 85</td>
+          <td>1.00 <small>(Fail)</small></td>
+        </tr>
+        <tr>
+          <td><div class="dot" style="background:#0d0d0d"></div></td>
+          <td><code>#0D0D0D</code></td>
+          <td><code>surface</code></td>
+          <td>217, 0, 5</td>
+          <td>13.77 <small>(AAA)</small></td>
+        </tr>
+        <tr>
+          <td><div class="dot" style="background:#010101"></div></td>
+          <td><code>#010101</code></td>
+          <td><code>text</code></td>
+          <td>300, 0, 0</td>
+          <td>14.79 <small>(AAA)</small></td>
+        </tr>
+        <tr>
+          <td><div class="dot" style="background:#6d80a6"></div></td>
+          <td><code>#6D80A6</code></td>
+          <td><code>accent</code></td>
+          <td>220, 24, 54</td>
+          <td>2.81 <small>(Fail)</small></td>
+        </tr></tbody>
+        </table>
+      </section>
+    
+      <section class="theme theme-secondary" data-theme="demo inverse">
+        <header style="color: var(--text);"><h2 style="color: var(--text); font-weight: 700;">DEMO INVERSE</h2><span class="tag">demo inverse</span></header>
+        <div class="palette">
+    <div class="swatch">
+      <div class="chip" style="background:#141414; color:#f7f7f8">
+        <span class="role">background</span>
+        <span class="hex">#141414</span>
+        <span class="pop">198,956 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">20, 20, 20</span></div>
+        <div><span class="k">HSL</span> <span class="v">0°, 0%, 8%</span></div>
+      </div>
+    </div>
+    
+    <div class="swatch">
+      <div class="chip" style="background:#2e2e2e; color:#f7f7f8">
+        <span class="role">surface</span>
+        <span class="hex">#2E2E2E</span>
+        <span class="pop">7,033 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">46, 46, 46</span></div>
+        <div><span class="k">HSL</span> <span class="v">0°, 0%, 18%</span></div>
+      </div>
+    </div>
+    
+    <div class="swatch">
+      <div class="chip" style="background:#f5f5f5; color:#0f1117">
+        <span class="role">text</span>
+        <span class="hex">#F5F5F5</span>
+        <span class="pop">1,465 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">245, 245, 245</span></div>
+        <div><span class="k">HSL</span> <span class="v">0°, 0%, 96%</span></div>
+      </div>
+    </div>
+    
+    <div class="swatch">
+      <div class="chip" style="background:#1d62ed; color:#f7f7f8">
+        <span class="role">accent</span>
+        <span class="hex">#1D62ED</span>
+        <span class="pop">596 px</span>
+      </div>
+      <div class="meta">
+        <div><span class="k">RGB</span> <span class="v">29, 98, 237</span></div>
+        <div><span class="k">HSL</span> <span class="v">220°, 85%, 52%</span></div>
+      </div>
+    </div>
+    </div>
+        <table>
+          <thead><tr><th></th><th>Hex</th><th>Role</th><th>HSL</th><th>Contrast on #141414</th></tr></thead>
+          <tbody>
+        <tr>
+          <td><div class="dot" style="background:#141414"></div></td>
+          <td><code>#141414</code></td>
+          <td><code>background</code></td>
+          <td>0, 0, 8</td>
+          <td>1.00 <small>(Fail)</small></td>
+        </tr>
+        <tr>
+          <td><div class="dot" style="background:#2e2e2e"></div></td>
+          <td><code>#2E2E2E</code></td>
+          <td><code>surface</code></td>
+          <td>0, 0, 18</td>
+          <td>1.36 <small>(Fail)</small></td>
+        </tr>
+        <tr>
+          <td><div class="dot" style="background:#f5f5f5"></div></td>
+          <td><code>#F5F5F5</code></td>
+          <td><code>text</code></td>
+          <td>0, 0, 96</td>
+          <td>16.90 <small>(AAA)</small></td>
+        </tr>
+        <tr>
+          <td><div class="dot" style="background:#1d62ed"></div></td>
+          <td><code>#1D62ED</code></td>
+          <td><code>accent</code></td>
+          <td>220, 85, 52</td>
+          <td>3.53 <small>(Fail)</small></td>
+        </tr></tbody>
+        </table>
+      </section>
+  </section>
+  <section>
+    <h2>Accessibility</h2>
+    <table>
+      <thead><tr><th>Pair</th><th>Foreground</th><th>Background</th><th>Ratio</th><th>Level</th></tr></thead>
+      <tbody>
+    <tr>
+      <td>Primary — surface on background</td>
+      <td><div class="dot" style="background:#0d0d0d"></div> <code>#0D0D0D</code></td>
+      <td><div class="dot" style="background:#d9d9d9"></div> <code>#D9D9D9</code></td>
+      <td><strong>13.77</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td>Primary — text on background</td>
+      <td><div class="dot" style="background:#010101"></div> <code>#010101</code></td>
+      <td><div class="dot" style="background:#d9d9d9"></div> <code>#D9D9D9</code></td>
+      <td><strong>14.79</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td>Primary — accent on background</td>
+      <td><div class="dot" style="background:#6d80a6"></div> <code>#6D80A6</code></td>
+      <td><div class="dot" style="background:#d9d9d9"></div> <code>#D9D9D9</code></td>
+      <td><strong>2.81</strong></td>
+      <td><span class="badge badge-fail">Fail</span></td>
+    </tr>
+    <tr>
+      <td>Secondary — surface on background</td>
+      <td><div class="dot" style="background:#2e2e2e"></div> <code>#2E2E2E</code></td>
+      <td><div class="dot" style="background:#141414"></div> <code>#141414</code></td>
+      <td><strong>1.36</strong></td>
+      <td><span class="badge badge-fail">Fail</span></td>
+    </tr>
+    <tr>
+      <td>Secondary — text on background</td>
+      <td><div class="dot" style="background:#f5f5f5"></div> <code>#F5F5F5</code></td>
+      <td><div class="dot" style="background:#141414"></div> <code>#141414</code></td>
+      <td><strong>16.90</strong></td>
+      <td><span class="badge badge-aaa">AAA</span></td>
+    </tr>
+    <tr>
+      <td>Secondary — accent on background</td>
+      <td><div class="dot" style="background:#1d62ed"></div> <code>#1D62ED</code></td>
+      <td><div class="dot" style="background:#141414"></div> <code>#141414</code></td>
+      <td><strong>3.53</strong></td>
+      <td><span class="badge badge-fail">Fail</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  
+</main>
+<footer>Color Palette MCP · 2026-07-01</footer>
+<script>
+  (function() {
+    var body = document.body;
+    var buttons = document.querySelectorAll('[data-set-theme]');
+    function set(which) {
+      body.classList.remove('theme-show-primary', 'theme-show-secondary');
+      body.classList.add('theme-show-' + which);
+      buttons.forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-set-theme') === which);
+      });
+      try { localStorage.setItem('paletteTheme', which); } catch (e) {}
+    }
+    buttons.forEach(function(b) {
+      b.addEventListener('click', function() {
+        set(b.getAttribute('data-set-theme'));
+      });
+    });
+    try {
+      var saved = localStorage.getItem('paletteTheme');
+      if (saved === 'primary' || saved === 'secondary') set(saved);
+    } catch (e) {}
+  })();
+</script>
+</body>
+</html>

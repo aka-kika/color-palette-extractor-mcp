@@ -1,0 +1,20 @@
+{
+  "demo-inverse": {
+    "background": {
+      "value": "#141414",
+      "type": "color"
+    },
+    "surface": {
+      "value": "#2e2e2e",
+      "type": "color"
+    },
+    "text": {
+      "value": "#f5f5f5",
+      "type": "color"
+    },
+    "accent": {
+      "value": "#1d62ed",
+      "type": "color"
+    }
+  }
+}

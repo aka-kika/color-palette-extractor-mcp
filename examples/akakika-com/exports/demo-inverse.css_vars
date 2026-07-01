@@ -1,0 +1,7 @@
+/* demo-inverse */
+:root {
+  --demo-inverse-background: #141414;
+  --demo-inverse-surface: #2e2e2e;
+  --demo-inverse-text: #f5f5f5;
+  --demo-inverse-accent: #1d62ed;
+}

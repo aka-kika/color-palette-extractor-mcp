@@ -1,0 +1,7 @@
+/* brand */
+:root {
+  --brand-background: #d9d9d9;
+  --brand-surface: #0d0d0d;
+  --brand-text: #010101;
+  --brand-accent: #6d80a6;
+}
