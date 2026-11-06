@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: build (node ${{ matrix.node-version }})
-    runs-on: macos-26
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -26,8 +26,16 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Audit runtime deps (fail on high+)
+        # Scope to production deps — dev-only tooling (test runner, bundler) is
+        # not shipped to consumers, so its advisories shouldn't fail the build.
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Type-check
         run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
