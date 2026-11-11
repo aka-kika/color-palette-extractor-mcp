@@ -71,7 +71,7 @@ npm test            # 18 unit tests (color math + SSRF guard)
 npm run build
 ```
 
-**Requirements:** Node ≥ 18. CI runs on `ubuntu-latest` across Node 18 and 22 (dropped Node 20 because GitHub deprecated it on runners), and gates on type-check, the test suite, and a runtime-dependency `npm audit`.
+**Requirements:** Node ≥ 20.9 (what sharp 0.35 needs). CI runs on `ubuntu-latest` across Node 22 and 24, and gates on type-check, the test suite, and a runtime-dependency `npm audit`.
 
 ### Install as a published package (once released to npm)
 

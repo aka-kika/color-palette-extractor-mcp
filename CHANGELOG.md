@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- **Security updates** — sharp 0.33 → 0.35 (libvips advisories) and zod 3 → 4 (memory advisory); `npm audit fix` for the rest (qs and others). `npm audit` on runtime deps is clean again, so CI passes.
+- **Node ≥ 20.9** — sharp 0.35 no longer supports Node 18. CI now runs on Node 22 and 24.
+
 ## [0.5.0] - 2026-07-01
 
 Security-hardening + reliability release. No change to the happy-path output of any tool.
