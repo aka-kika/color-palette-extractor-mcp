@@ -5,10 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.5.1] - 2026-11-11
 
 - **Security updates** — sharp 0.33 → 0.35 (libvips advisories) and zod 3 → 4 (memory advisory); `npm audit fix` for the rest (qs and others). `npm audit` on runtime deps is clean again, so CI passes.
 - **Node ≥ 20.9** — sharp 0.35 no longer supports Node 18. CI now runs on Node 22 and 24.
+- **First release on npm** — `npm install -g color-palette-extractor-mcp` and `npx color-palette-extractor-mcp` now work as the README says.
+- **Fixed: the command did not start** — `dist/server.js` now begins with `#!/usr/bin/env node`, so the installed `color-palette-extractor-mcp` command runs.
 
 ## [0.5.0] - 2026-07-01
 

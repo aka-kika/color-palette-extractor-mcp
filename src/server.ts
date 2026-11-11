@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Color Palette Extractor MCP server.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
